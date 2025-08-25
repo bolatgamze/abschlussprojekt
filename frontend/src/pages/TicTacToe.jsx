@@ -99,9 +99,9 @@ export default function TicTacToe(){
 
             {winner && (
                 <div style={{ marginTop: "20px" }}>
-                    {winner === "player" && <h2>🎉 gewonnen!</h2>}
-                    {winner === "bot" && <h2>😢 verloren!</h2>}
-                    {winner === "draw" && <h2>🤝 keinen gewinner!</h2>}
+                    {winner === "player" && <h2>Gewonnen!</h2>}
+                    {winner === "bot" && <h2>Verloren!</h2>}
+                    {winner === "draw" && <h2>Kein Gewinner!</h2>}
                 </div>
             )}
         </section>
