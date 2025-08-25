@@ -1,6 +1,9 @@
-import { Outlet, Link } from 'react-router-dom'
+import { Link, Outlet } from 'react-router-dom'
+import { useState } from 'react'
 
 export default function App(){
+    const [me, setMe] = useState(null)
+
     return (
         <div className="page">
             <nav className="nav">
@@ -8,12 +11,14 @@ export default function App(){
                     <Link to="/" className="brand">Abschlussprojekt</Link>
                     <div className="links">
                         <Link to="/spielen">Spielen</Link>
-                        <Link to="/login">Anmelden</Link>
+                        {!me && <Link to="/login">Anmelden</Link>}
+                        {me && <Link to={`/profile/${me.userId}`}>Profil</Link>}
                     </div>
                 </div>
             </nav>
+
             <main className="container">
-                <Outlet/>
+                <Outlet />
             </main>
         </div>
     )

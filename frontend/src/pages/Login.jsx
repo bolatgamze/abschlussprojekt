@@ -1,12 +1,13 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
-export default function Login(){
-    const [username, setU] = useState('gamze')      // Test
-    const [password, setP] = useState('geheim123')  // Test
+export default function Login({ onLogin }){
+    const [username, setU] = useState('')
+    const [password, setP] = useState('')
     const [message, setMsg] = useState('')
-    const [me, setMe] = useState(null)
+    const nav = useNavigate()
 
     async function post(path, body){
         const res = await fetch(API + path, {
@@ -18,16 +19,24 @@ export default function Login(){
         return { ok: res.ok, data }
     }
 
-    async function handleRegister(){
-        const { ok, data } = await post('/api/auth/register', { username, password })
-        setMsg(data.message || (ok ? 'Registriert.' : 'Fehler'))
-        if(ok) setMe({ username: data.username })
-    }
-
     async function handleLogin(){
         const { ok, data } = await post('/api/auth/login', { username, password })
-        setMsg(data.message || (ok ? 'Angemeldet.' : 'Fehler'))
-        if(ok) setMe({ username: data.username })
+        if(ok){
+            onLogin(data)
+            nav('/profile/' + data.userId)
+        } else {
+            setMsg(data.message || 'Fehler')
+        }
+    }
+
+    async function handleRegister(){
+        const { ok, data } = await post('/api/auth/register', { username, password })
+        if(ok){
+            onLogin(data)
+            nav('/profile/' + data.userId)
+        } else {
+            setMsg(data.message || 'Fehler')
+        }
     }
 
     return (
@@ -46,16 +55,15 @@ export default function Login(){
                 </label>
 
                 <div className="row">
-                    <button className="btn" onClick={handleRegister}>Registrieren</button>
-                    <button className="btn" onClick={handleLogin}>Einloggen</button>
+                    <button type="button" className="btn" onClick={handleRegister}>Registrieren</button>
+                    <button type="button" className="btn" onClick={handleLogin}>Einloggen</button>
                 </div>
 
-                {me && <p className="ok">Angemeldet als <b>{me.username}</b></p>}
                 {message && <p className="muted">{message}</p>}
 
                 <hr/>
                 <p className="muted">Oder als Gast spielen (ohne Speicherung)</p>
-                <button className="btn" onClick={()=>alert('Gastmodus – Speicherung ist deaktiviert')}>Als Gast spielen</button>
+                <button type="button" className="btn" onClick={()=>nav('/profile/guest')}>Als Gast spielen</button>
             </div>
         </section>
     )

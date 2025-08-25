@@ -1,3 +1,9 @@
 package de.winona.backend.auth.dto;
 
-public record AuthResponse(String message, String username) {}
+import java.util.UUID;
+
+public record AuthResponse(
+        String message,
+        String username,
+        UUID userId
+) {}
