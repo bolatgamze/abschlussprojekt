@@ -1,0 +1,38 @@
+### Ping testen
+GET http://localhost:8080/api/ping
+
+### Registrierung (Gamze)
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "gamze",
+  "password": "geheim123"
+}
+
+### Login (Gamze)
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "gamze",
+  "password": "geheim123"
+}
+
+### Spiel starten
+POST http://localhost:8080/api/game/session
+Content-Type: application/json
+
+{
+  "gameType": "TICTACTOE",
+  "playerTheme": "KATZE"
+}
+
+### Spiel beenden (Beispiel)
+POST http://localhost:8080/api/game/session/1234-5678-90/finish
+Content-Type: application/json
+
+{
+  "score": 42,
+  "metadata": {"result":"WIN"}
+}

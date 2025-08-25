@@ -1,0 +1,163 @@
+/* =========================
+   Atari/Arcade Theme (bunt & lebendig)
+   - Mehrfarbiger animierter Verlaufshintergrund
+   - Neon-/Glüheffekte
+   - Pixel-Corner-Rahmen
+   - Thema via body.katze / body.hund
+   ========================= */
+
+/* Globale Farbvariablen */
+:root{
+  --text: #F9FAFF;
+
+  /* Rainbow-Akzent (Standard, wenn kein Thema) */
+  --accent1: #FFD200; /* Gelb */
+  --accent2: #FF3B7B; /* Pink */
+  --accent3: #00E5FF; /* Cyan */
+  --accent4: #7CFFB2; /* Mint */
+  --accent5: #FF8A00; /* Orange */
+
+  /* Thema-Farben */
+  --katze: #FFC14D;  /* warmes Orange */
+  --hund:  #76FFBE;  /* frisches Grün */
+}
+
+/* Thema umschalten: body.katze / body.hund ändert Primärakzent */
+body.katze{ --accent1: var(--katze); }
+body.hund { --accent1: var(--hund);  }
+
+/* Vollflächiger Arcade-Background (animierter Mehrfarbverlauf) */
+html, body, #root { height: 100%; }
+* { box-sizing: border-box; }
+body{
+  margin:0;
+  color: var(--text);
+  font-family: "Press Start 2P", system-ui, monospace;
+  line-height: 1.6;
+  background: radial-gradient(1200px 700px at 20% -10%, #1a0033 0%, #06060f 40%, #000 100%);
+  overflow-x: hidden;
+}
+
+/* Animierte Regenbogen-Schicht darüber (Retro-Glow) */
+body::before{
+  content:"";
+  position: fixed; inset: -10%;
+  background: conic-gradient(from 0deg,
+  #ff0048, #ff7a00, #ffd200, #36ff00, #00f6ff, #7a5cff, #ff3bd5, #ff0048);
+  filter: blur(60px) saturate(140%);
+  opacity: .10;
+  animation: spin 30s linear infinite;
+  pointer-events: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Leichte Scanlines für CRT-Gefühl */
+.page::after{
+  content:""; position: fixed; inset:0; pointer-events:none;
+  background: repeating-linear-gradient(
+          to bottom,
+          rgba(255,255,255,.06) 0px,
+          rgba(255,255,255,.06) 1px,
+          transparent 2px,
+          transparent 3px
+  );
+  mix-blend-mode: overlay;
+  opacity: .08;
+}
+
+/* Navbar mit Neon-Glow */
+.nav{ position: sticky; top:0; z-index: 10; backdrop-filter: blur(6px); }
+.nav-inner{
+  max-width: 1200px; margin: 0 auto; padding: 14px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.brand{
+  color: var(--accent1); text-decoration: none; letter-spacing: 1px;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--accent1) 60%, transparent);
+}
+.links a{
+  color: var(--text); text-decoration: none; margin-left: 18px; opacity: .9;
+  text-shadow: 0 0 6px rgba(255,255,255,.1);
+}
+.links a:hover{ opacity: 1; text-shadow: 0 0 10px var(--accent3); }
+
+.container{ max-width:1200px; margin:0 auto; padding:24px 16px; }
+.center{ display:grid; place-items:center; padding: 48px 16px; }
+
+/* Arcade-Card: pixel corners + Neon-Kante */
+.card{
+  position: relative;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  border: 2px solid rgba(255,255,255,.18);
+  border-radius: 16px; padding: 22px; width: min(720px, 100%);
+  box-shadow: 0 0 0 2px rgba(255,255,255,.05), 0 18px 40px rgba(0,0,0,.45);
+}
+.card::before,
+.card::after{
+  /* Pixel-Corner */
+  content:""; position:absolute; width: 16px; height: 16px;
+  background:
+          linear-gradient(var(--accent1), var(--accent1)) top left/ 16px 3px no-repeat,
+          linear-gradient(var(--accent1), var(--accent1)) top left/ 3px 16px no-repeat,
+          linear-gradient(var(--accent2), var(--accent2)) bottom right/ 16px 3px no-repeat,
+          linear-gradient(var(--accent2), var(--accent2)) bottom right/ 3px 16px no-repeat;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent1) 50%, transparent));
+  opacity: .9;
+}
+.card::before{ left: -2px; top: -2px; }
+.card::after{ right: -2px; bottom: -2px; }
+
+/* Maze-Hintergrund (Pac-ähnliche Zellen) */
+.maze{
+  --s: 24px;
+  background:
+          radial-gradient(circle at 50% 50%, rgba(255,255,255,.08) 0 2px, transparent 3px) 0 0 / var(--s) var(--s),
+          linear-gradient(90deg, rgba(0,229,255,.25) 1px, transparent 1px) 0 0 / var(--s) var(--s),
+          linear-gradient(0deg, rgba(0,229,255,.25) 1px, transparent 1px) 0 0 / var(--s) var(--s);
+  border-radius: 14px; padding: 22px; border: 2px solid rgba(255,255,255,.18);
+  box-shadow: inset 0 0 20px rgba(0,229,255,.1);
+}
+
+/* Pellets (blinkende Punkte) */
+.pellets{ display:flex; gap: 10px; justify-content:center; margin-top: 14px; }
+.pellet{
+  width: 8px; height: 8px; border-radius: 50%; background: #FFE37A;
+  box-shadow: 0 0 12px #FFE37A;
+  animation: blink .9s infinite alternate;
+}
+.pellet:nth-child(2){ animation-delay: .15s }
+.pellet:nth-child(3){ animation-delay: .30s }
+@keyframes blink { to { opacity:.45; transform: translateY(-1px) } }
+
+/* Arcade-Buttons (mehr Farbe, Klick-Feedback) */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:10px;
+  padding: 14px 18px; border-radius: 12px;
+  color: var(--text); background: rgba(20,24,60,.82);
+  border: 2px solid color-mix(in srgb, var(--accent1) 40%, transparent);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.06), 0 6px 0 0 rgba(0,0,0,.5),
+  0 0 12px color-mix(in srgb, var(--accent1) 30%, transparent);
+  cursor: pointer; transition: transform .06s ease, box-shadow .15s, filter .15s, background .2s;
+  text-transform: uppercase; letter-spacing: .5px; font-size: 12px;
+}
+.btn:hover{
+  background: color-mix(in srgb, rgba(20,24,60,.82) 60%, var(--accent1) 40%);
+  filter: saturate(130%);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.1),
+  0 8px 16px rgba(0,0,0,.6),
+  0 0 16px color-mix(in srgb, var(--accent1) 45%, transparent);
+}
+.btn:active{ transform: translateY(2px); }
+
+/* Hilfs-Layouts */
+.stack{ display:grid; gap:16px; width:100%; max-width: 560px; }
+.row{ display:flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.muted{ opacity: .85; }
+.small{ font-size: 11px; }
+
+/* Formulare im Arcade-Stil */
+.input {
+  padding: 12px; border-radius: 10px;
+  border: 2px solid rgba(255,255,255,.25);
+  background: rgba(255,255,255,.96); color: #111;
+}
