@@ -1,6 +1,6 @@
 import { W, H, SIZE, SPEED, FRAME_TIME, TILE } from "./constants";
 import { drawFrame } from "./draw";
-import { isTileWall } from "./walls";
+import { isTileWall, consumeDotAtVertex } from "./walls";
 
 export function startGameLoop(ctx, sprites, input) {
     const COLS = Math.floor(W / TILE);
@@ -25,6 +25,8 @@ export function startGameLoop(ctx, sprites, input) {
         acc: 0,
         frame: 0,
         rafId: 0,
+
+        score:0,
     };
 
     const isZero = (v) => v.x === 0 && v.y === 0;
@@ -130,6 +132,9 @@ export function startGameLoop(ctx, sprites, input) {
             state.vx += state.dir.x;
             state.vy += state.dir.y;
 
+            const gained = consumeDotAtVertex(state.vx, state.vy);
+            if (gained) state.score += gained;
+
             // --- HORIZONTALER WARP der Vertex-Koordinate ---
             if (state.vx < 0) state.vx = COLS;
             else if (state.vx > COLS) state.vx = 0;
@@ -205,6 +210,12 @@ export function startGameLoop(ctx, sprites, input) {
             state.face.x,
             state.face.y
         );
+
+        ctx.save();
+        ctx.fillStyle = "#fff";
+        ctx.font = "16px monospace";
+        ctx.fillText(`SCORE ${state.score}`, 8, 18);
+        ctx.restore();
 
         state.rafId = requestAnimationFrame(step);
     }

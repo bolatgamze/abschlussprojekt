@@ -38,6 +38,37 @@ const BASE_MAP = [
 
 // ---- Upscaling: jede Basiszelle -> SCALE×SCALE Zellen ----
 const SCALE = 2; // für Sprite SIZE=32 bei TILE=16; setz auf 1, falls SIZE=16
+
+// === DOT-STATE (auf Basis der BASE_MAP, nicht der upgescalten level) ===
+const BASE_ROWS = BASE_MAP.length;
+const BASE_COLS = BASE_MAP[0].length;
+
+// dots[r][c] = '' | 'b' (BISCUIT) | 'p' (PILL)
+const dots = Array.from({ length: BASE_ROWS }, (_, r) =>
+    Array.from({ length: BASE_COLS }, (_, c) => {
+        const v = BASE_MAP[r][c];
+        return v === T.BISCUIT ? 'b' : v === T.PILL ? 'p' : '';
+    })
+);
+
+// Punktewerte (bei Bedarf anpassen)
+const SCORE_BISCUIT = 10;
+const SCORE_PILL    = 50;
+
+// Konsumiere Dot am GITTER-KNOTEN (vx, vy) — Avatar läuft auf Kanten, Knoten sind integer.
+// Für SCALE=2 liegt der Dot genau im Knoten (2c+1, 2r+1) → (vx-1)%2==0 & (vy-1)%2==0.
+export function consumeDotAtVertex(vx, vy) {
+    const S = SCALE; // 2
+    if (((vx - 1) % S) !== 0 || ((vy - 1) % S) !== 0) return 0; // kein Blockzentrum
+    const bc = (vx - 1) / S;
+    const br = (vy - 1) / S;
+    const d = dots[br]?.[bc];
+    if (!d) return 0;
+    dots[br][bc] = ''; // entfernen
+    return d === 'p' ? SCORE_PILL : SCORE_BISCUIT;
+}
+
+
 function upscale(src, s) {
     const rows = src.length, cols = src[0].length;
     const out = Array.from({ length: rows * s }, () => Array(cols * s).fill(0));
@@ -65,33 +96,29 @@ export function isTileWall(tx, ty) {
     const v = level[ty][tx];
     return v === T.WALL;
 }
-
 export function drawDots(ctx) {
     ctx.save();
+    const S = SCALE;           // 2
+    const unit = TILE * S;     // Größe eines BASE_MAP-Feldes in Pixeln
 
-    const S = SCALE;           // 2 bei upscaling, 1 wenn nicht
-    const unit = TILE * S;     // Kantenlänge eines 1×1 BASE_MAP-Felds in Pixeln
+    for (let r = 0; r < BASE_ROWS; r++) {
+        for (let c = 0; c < BASE_COLS; c++) {
+            const d = dots[r][c];
+            if (!d) continue;
+            const cx = (c + 0.5) * unit;
+            const cy = (r + 0.5) * unit;
+            const isPill = d === 'p';
+            const radius = isPill ? unit * 0.18 : unit * 0.09;
 
-    // iteriere in BLOCKS à S×S (z.B. 2×2)
-    for (let r = 0; r < ROWS; r += S) {
-        for (let c = 0; c < COLS; c += S) {
-            const v = level[r][c]; // alle S×S Zellen tragen denselben Wert
-            if (v === T.BISCUIT || v === T.PILL) {
-                const cx = (c + S / 2) * TILE; // Mittelpunkt des S×S-Blocks
-                const cy = (r + S / 2) * TILE;
-
-                ctx.beginPath();
-                ctx.fillStyle = v === T.PILL ? "#fff" : "#ffd35a";
-                // Größe relativ zum Block-Abstand wählen
-                const radius = v === T.PILL ? unit * 0.18 : unit * 0.09;
-                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-                ctx.fill();
-            }
+            ctx.beginPath();
+            ctx.fillStyle = isPill ? "#fff" : "#ffd35a";
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.fill();
         }
     }
-
     ctx.restore();
 }
+
 
 // ---- Wände zeichnen (tileweise „neonblau“) ----
 export function drawWalls(ctx) {
