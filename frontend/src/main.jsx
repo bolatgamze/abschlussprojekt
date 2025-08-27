@@ -9,7 +9,8 @@ import Login from "./pages/Login.jsx";
 import Profile from "./pages/Profile.jsx";
 import TicTacToe from "./pages/TicTacToe.jsx";
 import "./App.css";
-import PacPetStage0 from "./pages/PacPetStage0.jsx";
+import PacPetStage0 from "./pages/pacpet_old/PacPetStage0.jsx";
+import PacPetCurrent from "./pages/PacPet.jsx";
 
 const router = createBrowserRouter([
     {
@@ -21,7 +22,7 @@ const router = createBrowserRouter([
             { path: "login", element: <Login /> },
             { path: "profile/:userId", element: <Profile /> },
             { path: "spiel1/:theme", element: <TicTacToe /> },
-            { path: "spiel3/:theme", element: <PacPetStage0 /> },
+            { path: "spiel3/:theme", element: <PacPetCurrent /> },
             { path: "*", element: <p>404 – Seite nicht gefunden</p> },
         ],
     },
