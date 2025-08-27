@@ -1,8 +1,7 @@
 package de.winona.backend.game;
 
-
 import org.springframework.web.bind.annotation.*;
-        import java.util.*;
+import java.util.*;
 
 record StartSessionReq(String gameType, String playerTheme) {}
 record StartSessionRes(String sessionId, String message) {}

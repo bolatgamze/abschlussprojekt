@@ -11,12 +11,16 @@ export default function PlayerSelect(){
         <section className="center">
             <div className="card">
                 <h1>Wähle deinen Spieler</h1>
-                <p className="muted">Katze oder Hund? Das Design ändert sich je nach Auswahl.</p>
+                <p className="muted">
+                    Katze oder Hund? Das Design ändert sich je nach Auswahl.
+                </p>
                 <div className="row">
                     <button className="btn" onClick={()=>go('KATZE')}>🐱 Katze</button>
                     <button className="btn" onClick={()=>go('HUND')}>🐶 Hund</button>
                 </div>
-                <p className="small muted">Nächstes Spiel: <code>{next}</code></p>
+                <p className="small muted">
+                    Nächstes Spiel: <code>{next}</code>
+                </p>
             </div>
         </section>
     )
