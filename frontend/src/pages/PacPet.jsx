@@ -39,11 +39,10 @@ export default function PacmanModular() {
     }, []);
 
     return (
-        <div style={{backgroundColor: "white"}}>
+
             <div style={{ display: "grid", placeItems: "center", padding: 16 }}>
                 <canvas ref={canvasRef} style={{ background: "#000", imageRendering: "pixelated" }} />
             </div>
-        </div>
 
     );
 }
