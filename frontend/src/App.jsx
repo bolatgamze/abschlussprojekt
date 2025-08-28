@@ -55,7 +55,7 @@ export default function App(){
 
             <footer className="footer">
                 <div className="footer-inner">
-                    <span className="brand">Abschlussprojekt</span>
+                    <Link to="/" className="brand">Abschlussprojekt</Link>
                     <span>© Gamze & Marcel & Shiar</span>
                 </div>
             </footer>
