@@ -23,38 +23,38 @@
     </properties>
 
     <dependencies>
-        <!-- 🔐 Spring Security: für Passwort-Hashing und Authentifizierung -->
+        <!-- 🔐 Spring Security -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
-        <!-- 🌐 Web-Framework: stellt REST-Endpunkte zur Verfügung -->
+        <!-- 🌐 Web Framework -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- 🗄️ JPA: Datenbankzugriff über Entities und Repositories -->
+        <!-- 🗄️ JPA -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
-        <!-- ✅ Validation: Eingaben (DTOs) prüfen, z. B. @NotBlank -->
+        <!-- ✅ Validation -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
-        <!-- 🐘 PostgreSQL: Datenbanktreiber -->
+        <!-- 🐘 PostgreSQL -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
 
-        <!-- 🛠️ Flyway: Migrationstool für SQL-Skripte (db/migration) -->
+        <!-- 🛠️ Flyway -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -64,13 +64,21 @@
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
-        <!-- 📈 Actuator: Monitoring, Health-Checks (optional) -->
+        <!-- 🌳 Hibernate Types (JSONB desteği için) -->
+        <dependency>
+            <groupId>com.vladmihalcea</groupId>
+            <artifactId>hibernate-types-60</artifactId>
+            <version>2.21.1</version>
+        </dependency>
+
+
+        <!-- 📈 Actuator -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
-        <!-- ⚡ Devtools: Hot Reload während der Entwicklung -->
+        <!-- ⚡ Devtools -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -78,21 +86,21 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- 🧪 In-Memory DB H2: praktisch für Tests -->
+        <!-- 🧪 H2 DB (Tests) -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
         </dependency>
 
-        <!-- ✨ Lombok: reduziert Boilerplate (Getter/Setter automatisch) -->
+        <!-- ✨ Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
 
-        <!-- 🧪 Tests: Unit- und Integrationstests -->
+        <!-- 🧪 Tests -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -102,7 +110,6 @@
 
     <build>
         <plugins>
-            <!-- 🔧 Maven Compiler Plugin: kompiliert mit Java 21 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -117,7 +124,6 @@
                 </configuration>
             </plugin>
 
-            <!-- 🚀 Spring Boot Plugin: erstellt fat JAR und startet die App -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
@@ -128,6 +134,17 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <version>11.7.2</version>
+                <configuration>
+                    <url>jdbc:postgresql://localhost:5432/abschluss</url>
+                    <user>ap</user>
+                    <password>ap</password>
                 </configuration>
             </plugin>
         </plugins>

@@ -1,31 +1,41 @@
 package de.winona.backend.game;
 
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
+import org.hibernate.annotations.Type;
 import de.winona.backend.user.User;
 import jakarta.persistence.*;
-        import lombok.*;
-        import java.time.Instant;
+import lombok.*;
+import java.time.Instant;
 import java.util.UUID;
 
-@Entity @Table(name="ap_game_session")
-@Getter @Setter @NoArgsConstructor
+@Entity
+@Table(name = "ap_game_session")
+@Getter
+@Setter
+@NoArgsConstructor
 public class GameSession {
+
     @Id
     private UUID id = UUID.randomUUID();
 
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name="user_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     private User user; // Gast: null lassen
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "game_type", length = 50, nullable = false)
     private GameType gameType;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "player_theme", length = 50, nullable = false)
     private PlayerTheme playerTheme;
 
     private Instant startedAt = Instant.now();
     private Instant finishedAt;
     private Integer score;
 
-    @Column(columnDefinition="jsonb")
-    private String metadata; // raw JSON (String), z.B. {"result":"WIN"}
+    @Type(value = JsonBinaryType.class)
+    @Column(columnDefinition = "jsonb")
+    private JsonNode metadata;
 }
