@@ -1,4 +1,3 @@
-import React from "react";
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import App from './App.jsx'
@@ -11,6 +10,7 @@ import MemoryGame from './pages/MemoryGame.jsx'
 import WordGame from './pages/WordGame.jsx'
 import PacPetCurrent from "./pages/PacPet.jsx";
 import './App.css'
+import Character from "./pages/Character.jsx";
 
 const router = createBrowserRouter([
     {
@@ -18,14 +18,15 @@ const router = createBrowserRouter([
         element: <App />,
         children: [
             { index: true, element: <Home /> },
-            { path: "spielen", element: <PlayerSelect /> },
-            { path: "login", element: <Login /> },
-            { path: "profile/:userId", element: <Profile /> },
-            { path: "spiel1/:theme", element: <TicTacToe /> },
+            { path: 'spielen', element: <PlayerSelect /> },
+            { path: 'login', element: <Login /> },
+            { path: 'profile/:userId', element: <Profile /> },
+            { path: 'spiel1/:theme', element: <TicTacToe /> },
             { path: 'spiel4/:theme', element: <MemoryGame /> },
+            { path: 'character/:id', element: <Character /> },
+            { path: '*', element: <p>404 – Seite nicht gefunden</p> },
             { path: 'spiel2/:theme', element: <WordGame /> },
             { path: "spiel3/:theme", element: <PacPetCurrent /> },
-            { path: "*", element: <p>404 – Seite nicht gefunden</p> },
         ],
     },
 ]);
