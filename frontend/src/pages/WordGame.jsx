@@ -1,12 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useOutletContext } from "react-router-dom";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
-
-
-// 🐱 Katzen-Fragen (lustig)
-//
+// 🐱 Katzen-Fragen
 const CAT_QA = [
     { q: "Wie nennt man die geheime Kunst des Blicks, der um 4 Uhr morgens Futter erzwingt?", a: "LASERBLICK" },
     { q: "Welches edle Möbel ist laut Katze eindeutig ein Kratzbaum?", a: "SOFA" },
@@ -18,7 +15,7 @@ const CAT_QA = [
     { q: "Die oberste Regel der Kartons lautet: Wenn ich sitze, bin ich…?", a: "RICH" },
 ];
 
-// 🐶 Hunde-Fragen (lustig)
+// 🐶 Hunde-Fragen
 const DOG_QA = [
     { q: "Wie heißt die Wissenschaft des perfekten Schwanzwedelns?", a: "WEDOLOGIE" },
     { q: "Welches Spiel ist auch dann Pflicht, wenn der Mensch Schuhe anzieht?", a: "HOLEN" },
@@ -30,7 +27,6 @@ const DOG_QA = [
     { q: "Wer ist der offiziell beste Junge?", a: "ICH" },
 ];
 
-
 function pickRandom(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -40,10 +36,12 @@ function maskAnswer(answer, revealedIdx, icon) {
 
 export default function WordGame() {
     const { theme } = useParams(); // "KATZE" | "HUND"
+    const { me } = useOutletContext(); // context from App.jsx
     const isCat = theme === "KATZE";
     const ICON = isCat ? "🐱" : "🐶";
     const POOL = isCat ? CAT_QA : DOG_QA;
     const MAX_TRIES = 10;
+    const MAX_QUESTIONS = 5;
 
     const [sessionId, setSessionId] = useState(null);
     const [qa, setQa] = useState(() => pickRandom(POOL));
@@ -52,44 +50,63 @@ export default function WordGame() {
     const [tries, setTries] = useState(0);
     const [score, setScore] = useState(0);
     const [state, setState] = useState("playing");
+    const [leaderboard, setLeaderboard] = useState([]);
+    const [questionCount, setQuestionCount] = useState(0);
+    const [error, setError] = useState(null);
     const startedAtRef = useRef(Date.now());
 
+    // Session nur wenn User eingeloggt
     useEffect(() => {
-        setScore(0);
-    }, [theme]);
-
-    useEffect(() => {
-        const len = qa.a.length;
-        const min = Math.ceil(len * 0.30);
-        const max = Math.ceil(len * 0.5);
-        const revealCount = Math.max(1, Math.floor(Math.random() * (max - min + 1)) + min);
-
-        const idxs = new Set();
-        while (idxs.size < revealCount && idxs.size < len) {
-            idxs.add(Math.floor(Math.random() * len));
-        }
-
-        setRevealed(idxs);
-        setTries(0);
-        setState("playing");
-        setGuess("");
-        startedAtRef.current = Date.now();
-    }, [qa]);
-
-    useEffect(() => {
+        if (!me || me.userId === "guest") return;
         const start = async () => {
             try {
                 const res = await fetch(`${API}/api/game/session`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ gameType: "WORD", playerTheme: theme, userId: null }),
+                    body: JSON.stringify({ gameType: "WORD", playerTheme: theme, userId: me.userId }),
                 });
                 const data = await res.json();
-                if (res.ok && data.sessionId) setSessionId(data.sessionId);
-            } catch { /* non-blocking */ }
+                if (res.ok && data.sessionId) {
+                    setSessionId(data.sessionId);
+                } else {
+                    console.error("Fehler beim Starten der Session:", data);
+                    setError("Spiel-Session konnte nicht gestartet werden.");
+                }
+            } catch (err) {
+                console.error("Netzwerkfehler beim Starten der Session:", err);
+                setError("Netzwerkfehler beim Starten der Session.");
+            }
         };
         start();
-    }, [theme]);
+    }, [theme, me]);
+
+    // Neue Frage oder Spielende
+    useEffect(() => {
+        if (questionCount >= MAX_QUESTIONS) {
+            setState("finished");
+            const finalScore = score < 0 ? 0 : score;
+
+            if (me && me.userId !== "guest" && finalScore > 0) {
+                finishSession(finalScore, { result: "FINISHED", totalQuestions: MAX_QUESTIONS });
+            } else {
+                loadLeaderboard();
+            }
+        } else {
+            const len = qa.a.length;
+            const min = Math.ceil(len * 0.3);
+            const max = Math.ceil(len * 0.5);
+            const revealCount = Math.max(1, Math.floor(Math.random() * (max - min + 1)) + min);
+            const idxs = new Set();
+            while (idxs.size < revealCount && idxs.size < len) {
+                idxs.add(Math.floor(Math.random() * len));
+            }
+            setRevealed(idxs);
+            setTries(0);
+            setState("playing");
+            setGuess("");
+            startedAtRef.current = Date.now();
+        }
+    }, [qa, questionCount]);
 
     const masked = useMemo(() => maskAnswer(qa.a, revealed, ICON), [qa, revealed, ICON]);
 
@@ -101,7 +118,26 @@ export default function WordGame() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ score: finalScore, metadata: meta }),
             });
-        } catch { /* non-blocking */ }
+            await loadLeaderboard();
+        } catch (err) {
+            console.error("Fehler beim Speichern der Session:", err);
+            setError("Spiel-Session konnte nicht gespeichert werden.");
+        }
+    };
+
+    const loadLeaderboard = async () => {
+        try {
+            const res = await fetch(`${API}/api/game/leaderboard?gameType=WORD&playerTheme=${theme}`);
+            if (res.ok) {
+                setLeaderboard(await res.json());
+            } else {
+                console.warn("Leaderboard konnte nicht geladen werden:", res.status);
+                setError("Leaderboard konnte nicht geladen werden.");
+            }
+        } catch (err) {
+            console.error("Netzwerkfehler beim Laden des Leaderboards:", err);
+            setError("Netzwerkfehler beim Laden des Leaderboards.");
+        }
     };
 
     const handleRevealHint = () => {
@@ -141,20 +177,14 @@ export default function WordGame() {
         setTries(newTries);
 
         if (cleanGuess === answer) {
-            // Sieg
             const all = new Set(answer.split("").map((_, i) => i));
             setRevealed(all);
             setState("won");
-            const durationSec = Math.round((Date.now() - startedAtRef.current) / 1000);
-
-            finishSession(score, { result: "WIN", question: qa.q, answer: qa.a, tries: newTries, durationSec, theme });
             return;
         }
 
         if (newTries >= MAX_TRIES) {
             setState("lost");
-            const durationSec = Math.round((Date.now() - startedAtRef.current) / 1000);
-            finishSession(score, { result: "LOSE", question: qa.q, answer: qa.a, tries: newTries, durationSec, theme });
             return;
         }
 
@@ -162,30 +192,44 @@ export default function WordGame() {
     };
 
     const handleNextQuestion = () => {
-
-        const pool = isCat ? CAT_QA : DOG_QA;
-        setQa(pickRandom(pool));
+        setQuestionCount((c) => c + 1);
+        if (questionCount + 1 < MAX_QUESTIONS) {
+            setQa(pickRandom(POOL));
+        }
     };
 
-    const triesLeft = MAX_TRIES - tries;
-    const nextBtnLabel = state === "won" ? "Nächste Frage" : "Neue Frage"; // ⬅️ Label-Umschaltung
+    // --- UI ---
+    if (state === "finished") {
+        return (
+            <section className="card center" style={{ textAlign: "center" }}>
+                <h1 style={{ color: "var(--accent1)", marginBottom: "20px" }}>Spiel vorbei</h1>
+                <p>Dein Endscore: <b>{score < 0 ? 0 : score}</b></p>
+                {error && <p style={{ color: "var(--accent2)", marginTop: "10px" }}>{error}</p>}
+                <h2 style={{ color: "var(--accent3)", margin: "20px 0" }}>🏆 Leaderboard 🏆</h2>
+                <ul style={{ listStyle: "none", padding: 0 }}>
+                    {leaderboard.map((row, i) => (
+                        <li key={i} style={{ margin: "6px 0", fontSize: "12px" }}>
+                            {i + 1}. <span style={{ color: "var(--accent4)" }}>{row.username}</span> — {row.score}
+                        </li>
+                    ))}
+                </ul>
+            </section>
+        );
+    }
 
     return (
-        <section className="card center" style={{ maxWidth: 720 }}>
+        <section className="card center">
             <h1>Wort-Raten – {isCat ? "🐱 Katze" : "🐶 Hund"}</h1>
 
-            <div className="row" style={{ gap: 16, marginTop: 8 }}>
-                <div className="badge">Punkte: <b>{score}</b></div>
-                <div className="badge">Versuche übrig: <b>{triesLeft}</b> / {MAX_TRIES}</div>
+            {error && <p style={{ color: "var(--accent2)" }}>{error}</p>}
+
+            <div style={{ marginTop: 20 }}>
+                <h2>Frage</h2>
+                <p>{qa.q}</p>
             </div>
 
             <div style={{ marginTop: 20 }}>
-                <h2 style={{ marginBottom: 8 }}>Frage</h2>
-                <p style={{ fontSize: 18 }}>{qa.q}</p>
-            </div>
-
-            <div style={{ marginTop: 18 }}>
-                <h2 style={{ marginBottom: 8 }}>Antwort</h2>
+                <h2>Antwort</h2>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "10px 0" }}>
                     {masked.map((ch, i) => (
                         <span
@@ -199,8 +243,8 @@ export default function WordGame() {
                                 border: "2px solid #555",
                                 borderRadius: 8,
                                 fontSize: revealed.has(i) ? 20 : 24,
-                                background: revealed.has(i) ? "#ffffff" : "#fafafa",
-                                color: revealed.has(i) ? "#111111" : "inherit",
+                                background: revealed.has(i) ? "#fff" : "#fafafa",
+                                color: revealed.has(i) ? "#111" : "inherit",
                                 fontWeight: revealed.has(i) ? 700 : 400,
                                 userSelect: "none",
                             }}
@@ -209,44 +253,41 @@ export default function WordGame() {
             </span>
                     ))}
                 </div>
-
-                <div className="row" style={{ gap: 12 }}>
-                    <button className="btn" type="button" onClick={handleRevealHint}>
-                        Hinweis aufdecken (–5)
-                    </button>
-                </div>
+                <button className="btn" type="button" onClick={handleRevealHint}>
+                    Hinweis aufdecken (–5)
+                </button>
             </div>
 
             {state !== "lost" && (
                 <form onSubmit={handleSubmit} style={{ marginTop: 20 }}>
-                    <label style={{ display: "block" }}>
-                        <span>Dein Tipp</span>
-                        <input
-                            autoFocus
-                            value={guess}
-                            onChange={(e) => setGuess(e.target.value)}
-                            placeholder="Antwort hier eingeben"
-                            style={{ textTransform: "uppercase" }}
-                        />
-                    </label>
+                    <input
+                        autoFocus
+                        value={guess}
+                        onChange={(e) => setGuess(e.target.value)}
+                        placeholder="Antwort hier eingeben"
+                        style={{ textTransform: "uppercase" }}
+                    />
                     <div className="row" style={{ marginTop: 12 }}>
-                        <button className="btn" type="submit" disabled={state === "won"}>Prüfen</button>
-                        <button className="btn" type="button" onClick={handleNextQuestion}>{nextBtnLabel}</button>
+                        <button className="btn" type="submit" disabled={state === "won"}>
+                            Prüfen
+                        </button>
+                        <button className="btn" type="button" onClick={handleNextQuestion}>
+                            {state === "won" ? "Nächste Frage" : "Neue Frage"}
+                        </button>
                     </div>
                 </form>
             )}
 
             {state === "won" && (
                 <div style={{ marginTop: 18 }}>
-                    <h2>🎉 Richtig!</h2>
-                    <p> Lösung: <b>{qa.a}</b></p>
+                    <h2> Richtig!</h2>
+                    <p>Lösung: <b>{qa.a}</b></p>
                 </div>
             )}
 
             {state === "lost" && (
                 <div style={{ marginTop: 18 }}>
-                    <h2>😿😢 Leider verloren!</h2>
-                    <p>Du hast leider nach {MAX_TRIES} Versuchen das Wort nicht erraten.</p>
+                    <h2>Leider verloren!</h2>
                     <p>Gesuchte Lösung: <b>{qa.a}</b></p>
                     <button className="btn" type="button" onClick={handleNextQuestion} style={{ marginTop: 8 }}>
                         Nochmal spielen

@@ -21,11 +21,20 @@ export default function App(){
             <nav className="nav">
                 <div className="nav-inner">
                     <div className="brand">
-                        <img src="src/icons/gandalf-iconn.png" style={{ width: 28, height: 28, marginRight: 6 }} />
-                        <img src="src/icons/loki-iconn.png" style={{ width: 28, height: 28, marginRight: 6 }} />
-                        <img src="src/icons/rufus-iconn.png"  style={{ width: 28, height: 28, marginRight: 6 }} />
-                        <img src="src/icons/simba-iconn.png"  style={{ width: 28, height: 28, marginRight: 6 }} />
+                        <Link to="/character/gandalf">
+                            <img src="src/icons/gandalf-iconn.png" style={{ width: 28, height: 28, marginRight: 6 }} />
+                        </Link>
+                        <Link to="/character/loki">
+                            <img src="src/icons/loki-iconn.png" style={{ width: 28, height: 28, marginRight: 6 }} />
+                        </Link>
+                        <Link to="/character/rufus">
+                            <img src="src/icons/rufus-iconn.png" style={{ width: 28, height: 28, marginRight: 6 }} />
+                        </Link>
+                        <Link to="/character/simba">
+                            <img src="src/icons/simba-iconn.png" style={{ width: 28, height: 28, marginRight: 6 }} />
+                        </Link>
                     </div>
+
                     <div className="links">
                         <Link to="#" className="btn-link" onClick={e => {e.preventDefault(); randomGame()}}>
                             Spielen
@@ -55,7 +64,7 @@ export default function App(){
 
             <footer className="footer">
                 <div className="footer-inner">
-                    <span className="brand">Abschlussprojekt</span>
+                    <Link to="/" className="brand">Abschlussprojekt</Link>
                     <span>© Gamze & Marcel & Shiar</span>
                 </div>
             </footer>

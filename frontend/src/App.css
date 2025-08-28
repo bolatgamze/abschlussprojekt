@@ -15,6 +15,16 @@
 html, body, #root { height: 100%; }
 * { box-sizing: border-box; }
 
+/* Main container nav+footer */
+main.container {
+    min-height: calc(100vh - 80px - 60px); /* nav (80px) + footer (~60px) */
+    padding-bottom: 80px; /* footer üstüne binmesin */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
 /* Global: überall Retro-Font */
 body, button, input, label, .btn, .links a {
     font-family: "Press Start 2P", monospace !important;
@@ -260,5 +270,3 @@ label span {
     text-align: right;
     color: #fff;
 }
-
-

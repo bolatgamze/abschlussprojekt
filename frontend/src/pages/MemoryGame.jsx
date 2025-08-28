@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useOutletContext } from "react-router-dom";
+
+const API = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 // Karten-Sets für Katze und Hund
 const catCards = [
@@ -24,23 +26,47 @@ const dogCards = [
 function shuffleCards(base) {
     const doubled = [...base, ...base];
     return doubled
-        .map(card => ({ ...card, id: Math.random(), flipped: true, matched: false })) // am Anfang offen
+        .map(card => ({ ...card, id: Math.random(), flipped: true, matched: false }))
         .sort(() => Math.random() - 0.5);
 }
 
 export default function MemoryGame() {
     const { theme } = useParams(); // "KATZE" | "HUND"
+    const { me } = useOutletContext();
     const set = theme === "KATZE" ? catCards : dogCards;
 
+    const [sessionId, setSessionId] = useState(null);
     const [cards, setCards] = useState([]);
     const [choiceOne, setChoiceOne] = useState(null);
     const [choiceTwo, setChoiceTwo] = useState(null);
-    const [disabled, setDisabled] = useState(true); // Spiel am Anfang deaktiviert
+    const [disabled, setDisabled] = useState(true);
     const [timer, setTimer] = useState(10);
 
     const [score, setScore] = useState(0);
     const [lives, setLives] = useState(10);
     const [finished, setFinished] = useState(false);
+
+    const [leaderboard, setLeaderboard] = useState([]);
+    const [error, setError] = useState(null);
+
+    // Session starten
+    useEffect(() => {
+        const start = async () => {
+            try {
+                if (!me || me.userId === "guest") return; // Gäste nicht speichern
+                const res = await fetch(`${API}/api/game/session`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ gameType: "MEMORY", playerTheme: theme, userId: me.userId }),
+                });
+                const data = await res.json();
+                if (res.ok && data.sessionId) setSessionId(data.sessionId);
+            } catch (err) {
+                console.error("Fehler beim Starten der Session:", err);
+            }
+        };
+        start();
+    }, [theme, me]);
 
     // Spiel initialisieren
     useEffect(() => {
@@ -51,15 +77,11 @@ export default function MemoryGame() {
         setLives(10);
         setFinished(false);
 
-        // 10 Sekunden Countdown, Karten sichtbar
         const interval = setInterval(() => {
             setTimer(prev => {
                 if (prev <= 1) {
                     clearInterval(interval);
-                    // Karten umdrehen
-                    setCards(prevCards =>
-                        prevCards.map(c => ({ ...c, flipped: false }))
-                    );
+                    setCards(prevCards => prevCards.map(c => ({ ...c, flipped: false })));
                     setDisabled(false);
                     return 0;
                 }
@@ -116,26 +138,81 @@ export default function MemoryGame() {
     useEffect(() => {
         if (cards.length > 0 && cards.every(c => c.matched)) {
             setFinished(true);
+            finishSession(score, { result: "WIN" });
         } else if (lives <= 0) {
             setFinished(true);
+            finishSession(score, { result: "LOSE" });
         }
     }, [cards, lives]);
 
-    // Rückseite hängt von Spieler ab (Katze oder Hund)
+    const fetchLeaderboard = async () => {
+        try {
+            const res = await fetch(`${API}/api/game/leaderboard?gameType=MEMORY&playerTheme=${theme}`);
+            const data = await res.json();
+            setLeaderboard(data);
+        } catch (err) {
+            console.error("Fehler beim Laden der Bestenliste:", err);
+            setError("Leaderboard konnte nicht geladen werden.");
+            setLeaderboard([]);
+        }
+    };
+
+    const finishSession = async (finalScore, meta) => {
+        if (!sessionId) {
+            fetchLeaderboard(); // Gäste
+            return;
+        }
+        try {
+            await fetch(`${API}/api/game/session/${sessionId}/finish`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ score: finalScore, metadata: meta }),
+            });
+            fetchLeaderboard();
+        } catch (err) {
+            console.error("Fehler beim Speichern:", err);
+            setError("Ergebnis konnte nicht gespeichert werden.");
+        }
+    };
+
+    // === Fertiges Layout: wie WordGame ===
+    if (finished) {
+        return (
+            <section className="card center" style={{ textAlign: "center" }}>
+                <h1 style={{ color: "var(--accent1)", marginBottom: "20px" }}>
+                    {lives > 0 ? "Spiel vorbei" : "Spiel vorbei"}
+                </h1>
+                <p>Dein Endscore: <b>{score}</b></p>
+                {error && <p style={{ color: "var(--accent2)", marginTop: "10px" }}>{error}</p>}
+                {leaderboard.length > 0 && (
+                    <>
+                        <h2 style={{ color: "var(--accent3)", margin: "20px 0" }}>🏆 Leaderboard 🏆</h2>
+                        <ul style={{ listStyle: "none", padding: 0 }}>
+                            {leaderboard.map((row, i) => (
+                                <li key={i} style={{ margin: "6px 0", fontSize: "12px" }}>
+                                    {i + 1}. <span style={{ color: "var(--accent4)" }}>{row.username}</span> — {row.score}
+                                </li>
+                            ))}
+                        </ul>
+                    </>
+                )}
+            </section>
+        );
+    }
+
     const backSymbol = theme === "KATZE" ? "🐱" : "🐶";
 
+    // Normales Spiel-UI
     return (
         <section className="card center">
-            <h1>Memory Spiel – {theme === "KATZE" ? "🐱 Katze" : "🐶 Hund"}</h1>
+            <h1>Memory Spiel – {theme === "KATZE" ? "Katze" : "Hund"}</h1>
 
-            {/* Countdown-Anzeige */}
             {timer > 0 && (
-                <div style={{ fontSize: "1.5rem", color: "green", marginBottom: "10px" }}>
+                <div style={{ fontSize: "1.2rem", color: "green", marginBottom: "10px" }}>
                     Karten sichtbar für: {timer}s
                 </div>
             )}
 
-            {/* Spielbrett */}
             <div
                 style={{
                     display: "grid",
@@ -165,21 +242,10 @@ export default function MemoryGame() {
                 ))}
             </div>
 
-            {/* Punktestand & Leben */}
             <div style={{ marginTop: "20px" }}>
                 <p>Punkte: {score}</p>
                 <p>Fehlversuche übrig: {lives}</p>
             </div>
-
-            {/* Ergebnisnachricht */}
-            {finished && (
-                <div style={{ marginTop: "20px" }}>
-                    {lives > 0
-                        ? <h2>Glückwunsch! Endpunktzahl: {score}</h2>
-                        : <h2>Leider verloren! Endpunktzahl: {score}</h2>
-                    }
-                </div>
-            )}
         </section>
     );
 }

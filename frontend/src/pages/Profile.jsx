@@ -8,7 +8,7 @@ export default function Profile(){
     const [data, setData] = useState(null)
 
     useEffect(()=>{
-        fetch(API + "/api/auth/profile/" + userId)
+        fetch(API + "/api/profile/" + userId)   // ✅ değişiklik burada
             .then(r=>r.json())
             .then(setData)
             .catch(()=>setData({ recentGames: [], bestScores: [], stats: {} }))
