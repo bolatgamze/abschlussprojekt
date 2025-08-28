@@ -6,6 +6,7 @@ import PlayerSelect from './pages/PlayerSelect.jsx'
 import Login from './pages/Login.jsx'
 import Profile from './pages/Profile.jsx'
 import TicTacToe from './pages/TicTacToe.jsx'
+import WordGame from './pages/WordGame.jsx'
 import './App.css'
 
 const router = createBrowserRouter([
@@ -18,6 +19,7 @@ const router = createBrowserRouter([
             { path: 'login', element: <Login /> },
             { path: 'profile/:userId', element: <Profile /> },
             { path: 'spiel1/:theme', element: <TicTacToe /> },
+            { path: 'spiel2/:theme', element: <WordGame /> },
             { path: '*', element: <p>404 – Seite nicht gefunden</p> }
         ]
     }
