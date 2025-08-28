@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
-export default function Login({ onLogin }){
+export default function Login(){
+    const { setMe } = useOutletContext()
     const [username, setU] = useState('')
     const [password, setP] = useState('')
     const [message, setMsg] = useState('')
@@ -19,51 +20,67 @@ export default function Login({ onLogin }){
         return { ok: res.ok, data }
     }
 
-    async function handleLogin(){
-        const { ok, data } = await post('/api/auth/login', { username, password })
-        if(ok){
-            onLogin(data)
-            nav('/profile/' + data.userId)
-        } else {
-            setMsg(data.message || 'Fehler')
-        }
-    }
-
     async function handleRegister(){
         const { ok, data } = await post('/api/auth/register', { username, password })
         if(ok){
-            onLogin(data)
-            nav('/profile/' + data.userId)
+            setMe(data)
+            nav(`/profile/${data.userId}`)
         } else {
-            setMsg(data.message || 'Fehler')
+            setMsg(data.message || 'Fehler bei Registrierung')
         }
+    }
+
+    async function handleLogin(){
+        const { ok, data } = await post('/api/auth/login', { username, password })
+        if(ok){
+            setMe(data)
+            nav(`/profile/${data.userId}`)
+        } else {
+            setMsg(data.message || 'Fehler bei Login')
+        }
+    }
+
+    function handleGuest(){
+        setMe({ userId: "guest", username: "Gast" })
+        nav("/")
     }
 
     return (
         <section className="center">
-            <div className="card form">
+            <div className="card form" style={{ maxWidth: "350px" }}>
                 <h1>Anmelden / Registrieren</h1>
 
-                <label>
+                <label style={{ display: "block", marginBottom: "12px" }}>
                     <span>Benutzername</span>
-                    <input value={username} onChange={e=>setU(e.target.value)} />
+                    <input
+                        value={username}
+                        onChange={e=>setU(e.target.value)}
+                        style={{ width: "100%", marginTop: "5px" }}
+                    />
                 </label>
 
-                <label>
+                <label style={{ display: "block", marginBottom: "20px" }}>
                     <span>Passwort</span>
-                    <input type="password" value={password} onChange={e=>setP(e.target.value)} />
+                    <input
+                        type="password"
+                        value={password}
+                        onChange={e=>setP(e.target.value)}
+                        style={{ width: "100%", marginTop: "5px" }}
+                    />
                 </label>
 
-                <div className="row">
-                    <button type="button" className="btn" onClick={handleRegister}>Registrieren</button>
-                    <button type="button" className="btn" onClick={handleLogin}>Einloggen</button>
+                <div className="row" style={{ display: "flex", gap: "10px", marginBottom: "15px" }}>
+                    <button className="btn" onClick={handleRegister}>Registrieren</button>
+                    <button className="btn" onClick={handleLogin}>Einloggen</button>
                 </div>
 
                 {message && <p className="muted">{message}</p>}
 
-                <hr/>
+                <hr style={{ margin: "20px 0" }}/>
                 <p className="muted">Oder als Gast spielen (ohne Speicherung)</p>
-                <button type="button" className="btn" onClick={()=>nav('/profile/guest')}>Als Gast spielen</button>
+                <button className="btn" style={{ marginTop: "8px" }} onClick={handleGuest}>
+                    Als Gast spielen
+                </button>
             </div>
         </section>
     )

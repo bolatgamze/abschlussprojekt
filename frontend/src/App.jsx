@@ -1,25 +1,64 @@
-import { Link, Outlet } from 'react-router-dom'
+import { Link, Outlet, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 
 export default function App(){
     const [me, setMe] = useState(null)
+    const nav = useNavigate()
+
+    function randomGame(){
+        const spiele = ["spiel1", "spiel2", "spiel3", "spiel4"]
+        const zufall = spiele[Math.floor(Math.random() * spiele.length)]
+        nav(`/spielen?next=${zufall}`)
+    }
+
+    function handleLogout(){
+        setMe(null)
+        nav("/")
+    }
 
     return (
         <div className="page">
             <nav className="nav">
                 <div className="nav-inner">
-                    <Link to="/" className="brand">Abschlussprojekt</Link>
+                    <div className="brand">
+                        <img src="src/icons/gandalf-iconn.png" style={{ width: 28, height: 28, marginRight: 6 }} />
+                        <img src="src/icons/loki-iconn.png" style={{ width: 28, height: 28, marginRight: 6 }} />
+                        <img src="src/icons/rufus-iconn.png"  style={{ width: 28, height: 28, marginRight: 6 }} />
+                        <img src="src/icons/simba-iconn.png"  style={{ width: 28, height: 28, marginRight: 6 }} />
+                    </div>
                     <div className="links">
-                        <Link to="/spielen">Spielen</Link>
-                        {!me && <Link to="/login">Anmelden</Link>}
-                        {me && <Link to={`/profile/${me.userId}`}>Profil</Link>}
+                        <Link to="#" className="btn-link" onClick={e => {e.preventDefault(); randomGame()}}>
+                            Spielen
+                        </Link>
+
+                        {(!me || me.userId === "guest") && (
+                            <Link to="/login">Anmelden</Link>
+                        )}
+
+                        {me && me.userId !== "guest" && (
+                            <>
+                                <Link to={`/profile/${me.userId}`}>
+                                    Profil ({me.username})
+                                </Link>
+                                <Link to="#" className="btn-link" onClick={e => {e.preventDefault(); handleLogout()}}>
+                                    Logout
+                                </Link>
+                            </>
+                        )}
                     </div>
                 </div>
             </nav>
 
             <main className="container">
-                <Outlet />
+                <Outlet context={{ me, setMe }} />
             </main>
+
+            <footer className="footer">
+                <div className="footer-inner">
+                    <span className="brand">Abschlussprojekt</span>
+                    <span>© Gamze & Marcel & Shiar</span>
+                </div>
+            </footer>
         </div>
     )
 }
