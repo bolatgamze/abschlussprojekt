@@ -6,6 +6,7 @@ const API = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 
 // 🐱 Katzen-Fragen (lustig)
+//
 const CAT_QA = [
     { q: "Wie nennt man die geheime Kunst des Blicks, der um 4 Uhr morgens Futter erzwingt?", a: "LASERBLICK" },
     { q: "Welches edle Möbel ist laut Katze eindeutig ein Kratzbaum?", a: "SOFA" },
