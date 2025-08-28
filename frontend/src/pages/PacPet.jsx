@@ -22,6 +22,7 @@ export default function PacmanModular() {
 
         let cancelled = false;
 
+
         loadSprites().then((sprites) => {
             if (cancelled) return;
             const stop = startGameLoop(ctx, sprites, input);
