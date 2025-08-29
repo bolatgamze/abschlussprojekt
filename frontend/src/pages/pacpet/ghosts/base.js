@@ -1,12 +1,14 @@
-import {SIZE, TILE} from "../constants.js";
+// src/pages/pacpet/ghosts/base.js
+import { SIZE, TILE } from "../constants.js";
 
+/* ---------------- Normalizer ---------------- */
 export function normalizeGhost(g) {
     if (!g || typeof g !== "object") return;
     if (!Number.isFinite(g.vx)) g.vx = 0;
     if (!Number.isFinite(g.vy)) g.vy = 0;
 
     if (!g.dir || !Number.isFinite(g.dir.x) || !Number.isFinite(g.dir.y)) {
-        g.dir = { x: 1, y: 0 };       // Default nach rechts
+        g.dir = { x: 1, y: 0 }; // Default nach rechts
     }
     if (!g.edge || !Number.isFinite(g.edge.x) || !Number.isFinite(g.edge.y)) {
         g.edge = { ...g.dir };
@@ -16,6 +18,7 @@ export function normalizeGhost(g) {
     if (g.along >= TILE) g.along = g.along % TILE;
 }
 
+/* ---------------- Konstanten ---------------- */
 export const DIRS = [
     { x:  1, y:  0 },
     { x: -1, y:  0 },
@@ -23,8 +26,7 @@ export const DIRS = [
     { x:  0, y: -1 },
 ];
 
-
-// wählt an einem Knoten die Richtung mit kleinster Distanz zum Target
+/* --------- Zielgerichtete Richtungswahl --------- */
 export function chooseDirAtNode(g, target, canEdge, cols) {
     const back = g.dir ? { x: -g.dir.x, y: -g.dir.y } : { x: 0, y: 0 };
 
@@ -33,11 +35,11 @@ export function chooseDirAtNode(g, target, canEdge, cols) {
         return canEdge(g.vx, g.vy, d.x, d.y);
     });
 
+    // Sackgasse -> U-Turn zulassen
     if (options.length === 0) {
-        // Sackgasse → U-Turn zulassen
         options = DIRS.filter(d => canEdge(g.vx, g.vy, d.x, d.y));
     }
-    if (options.length === 0) return { x: 0, y: 0 }; // absolut keine Option → stehen
+    if (options.length === 0) return { x: 0, y: 0 };
 
     let best = options[0], bestDist = Infinity;
     for (const d of options) {
@@ -51,84 +53,121 @@ export function chooseDirAtNode(g, target, canEdge, cols) {
     return best;
 }
 
-
-// bevorzugt 'geradeaus' wenn möglich, sonst zufällig (kein U-Turn außer Sackgasse)
-export function chooseDirAtNodeForwardBiased(g, _target, canEdge, cols, forwardBias = 0.65) {
-    const DIRS = [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}];
+/* ---- Frightened: vorwärts-basiert, selten U-Turn ---- */
+export function chooseDirAtNodeForwardBiased(
+    g, _target, canEdge, cols, forwardBias = 0.7, uturnChance = 0.1
+) {
     const back = g.dir ? { x: -g.dir.x, y: -g.dir.y } : { x: 0, y: 0 };
 
+    // kleine Chance auf U-Turn, um Schlingen zu lösen
+    if (Math.random() < uturnChance && canEdge(g.vx, g.vy, back.x, back.y)) {
+        return back;
+    }
+
     let opts = DIRS.filter(d => {
-        if (d.x === back.x && d.y === back.y) return false; // nie direkt zurück (außer Sackgasse)
+        if (d.x === back.x && d.y === back.y) return false; // kein U-Turn
         return canEdge(g.vx, g.vy, d.x, d.y);
     });
+
     if (opts.length === 0) {
-        // Sackgasse: U-Turn zulassen
+        // Sackgasse -> U-Turn erlaubt
         opts = DIRS.filter(d => canEdge(g.vx, g.vy, d.x, d.y));
     }
     if (opts.length === 0) return { x: 0, y: 0 };
 
-    // Vorwärts-Priorität
     const forward = g.dir && opts.find(d => d.x === g.dir.x && d.y === g.dir.y);
     if (forward && Math.random() < forwardBias) return forward;
 
-    // Zufällig aus den Optionen (ohne U-Turn)
     return opts[(Math.random() * opts.length) | 0];
 }
 
-
-
+/* ----------------- Bewegung/Logik ----------------- */
 export function advanceGhost(
     g, dt, speed, canEdge, cols, target,
-    chooser = chooseDirAtNode   // <-- NEU: wählbare Entscheidungsfunktion
+    chooser = chooseDirAtNode
 ) {
-    // (dein normalizeGhost etc.)
+    normalizeGhost(g);
+
     let dist = speed * dt;
-    let safety = 16;
+    let safety = 16; // max 16 Knoten pro Frame
 
     while (dist > 0 && safety-- > 0) {
         let toNext = TILE - g.along;
         if (toNext <= 0) toNext = TILE;
 
-        if (dist < toNext) { g.along += dist; return; }
+        if (dist < toNext) {
+            g.along += dist;
+            return;
+        }
 
-        // Knoten
+        // --- Knoten erreichen ---
         dist -= toNext;
+        const prev = { vx: g.vx, vy: g.vy, dir: { ...g.dir } }; // für Failsafe merken
         g.along = 0;
         g.vx += g.dir.x;
         g.vy += g.dir.y;
 
+        // horizontaler Warp (Vertex)
         if (g.vx < 0) g.vx = cols;
         else if (g.vx > cols) g.vx = 0;
 
-        // dead-end failsafe (falls du den schon drin hast, lassen)
+        // --- Failsafe: hat dieser Knoten irgendeinen Ausgang? ---
+        const hasAnyExit =
+            canEdge(g.vx, g.vy,  1, 0) ||
+            canEdge(g.vx, g.vy, -1, 0) ||
+            canEdge(g.vx, g.vy,  0, 1) ||
+            canEdge(g.vx, g.vy,  0,-1);
 
-        const ndir = chooser(g, target, canEdge, cols) || { x: 0, y: 0 };
+        if (!hasAnyExit) {
+            // 1) vom vorherigen Knoten eine Quer-Richtung probieren
+            const perps = [
+                { x:  prev.dir.y, y: -prev.dir.x }, // 90° rechts
+                { x: -prev.dir.y, y:  prev.dir.x }, // 90° links
+            ];
+            const choice = perps.find(d => canEdge(prev.vx, prev.vy, d.x, d.y));
+            if (choice) {
+                g.vx = prev.vx; g.vy = prev.vy;
+                g.dir  = { ...choice };
+                g.edge = { ...choice };
+                g.along = 1; // sanfter „Nudge“
+                return;
+            }
+
+            // 2) sonst halbe Kante zurück und umdrehen
+            g.vx = prev.vx; g.vy = prev.vy;
+            g.dir  = { x: -prev.dir.x, y: -prev.dir.y };
+            g.edge = { ...g.dir };
+            g.along = TILE * 0.5;
+            return;
+        }
+
+        // --- Richtungswahl ---
+        let ndir = chooser(g, target, canEdge, cols) || { x: 0, y: 0 };
         if (ndir.x === 0 && ndir.y === 0) {
-            // Fallback: deterministisch wählen
-            const det = chooseDirAtNode(g, target, canEdge, cols);
-            if (det && (det.x !== 0 || det.y !== 0)) {
-                g.dir = { ...det }; g.edge = { ...det };
-            } else { g.dir = {x:0,y:0}; g.edge = {x:0,y:0}; return; }
-        } else {
-            if (ndir.x !== g.dir.x || ndir.y !== g.dir.y) {
-                g.dir = { ...ndir }; g.edge = { ...ndir };
+            // Fallback: deterministisch
+            ndir = chooseDirAtNode(g, target, canEdge, cols) || { x: 0, y: 0 };
+            if (ndir.x === 0 && ndir.y === 0) {
+                g.dir = { x: 0, y: 0 };
+                g.edge = { x: 0, y: 0 };
+                return;
             }
         }
 
-        if (!ndir) { g.dir = {x:0,y:0}; g.edge = {x:0,y:0}; return; }
-
         if (ndir.x !== g.dir.x || ndir.y !== g.dir.y) {
-            g.dir = { ...ndir };
+            g.dir  = { ...ndir };
             g.edge = { ...ndir };
         }
 
+        // Sicherheitscheck der neuen Kante
         if (!canEdge(g.vx, g.vy, g.dir.x, g.dir.y)) {
-            g.dir = {x:0,y:0}; g.edge = {x:0,y:0}; return;
+            g.dir = { x: 0, y: 0 };
+            g.edge = { x: 0, y: 0 };
+            return;
         }
     }
 }
 
-
+/* ----------------- Rendering ----------------- */
 export function drawGhost(ctx, g, frightTimer) {
     // Pixelposition aus Vertex + Kantenfortschritt
     let gx = g.vx * TILE;
@@ -179,4 +218,3 @@ export function drawGhost(ctx, g, frightTimer) {
 
     ctx.restore();
 }
-

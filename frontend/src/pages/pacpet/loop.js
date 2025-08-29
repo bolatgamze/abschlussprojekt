@@ -23,8 +23,8 @@ import { chooseDirAtNode } from "./ghosts/base.js"; // hinzufügen
 import {drawGhost} from "./ghosts/base.js";
 
 
-const DEBUG_GHOST_PATH = true;
-const DEBUG_GHOST_TARGET = true; // Target-Punkt anzeigen (ein/aus)
+const DEBUG_GHOST_PATH = false;
+const DEBUG_GHOST_TARGET = false; // Target-Punkt anzeigen (ein/aus)
 
 
 
@@ -388,32 +388,57 @@ export function startGameLoop(ctx, sprites, input) {
     }
 
 
-    function drawHUDBelow(ctx, score, curPhase, phaseTime) {
-        // Bereich unter dem Spielfeld als Hintergrund
+    // loop.js
+    function drawHUDBelow(ctx, score, curPhase, phaseTime, phaseIdx, frightTimer, frightTotal) {
+        // Hintergrundleiste
         ctx.save();
         ctx.fillStyle = "rgba(0,0,0,0.65)";
         ctx.fillRect(0, H, W, HUD_HEIGHT);
 
-        // Phase / Label / Progress
-        const label = curPhase.mode.toUpperCase(); // "SCATTER" | "CHASE"
-        const color = curPhase.mode === "scatter" ? "#00e676" : "#ff5252";
-        const finite = Number.isFinite(curPhase.t);
-        const prog = finite ? Math.min(1, Math.max(0, phaseTime / curPhase.t)) : 1;
+        // Frightened hat Vorrang vor Scatter/Chase
+        const isFright = frightTimer > 0;
 
-        // Score links
+        const label = isFright
+            ? "FRIGHT"
+            : (curPhase.mode || "").toUpperCase(); // "SCATTER"/"CHASE"
+
+        const color = isFright
+            ? "#3fb3ff"
+            : (curPhase.mode === "scatter" ? "#00e676" : "#ff5252");
+
+        // Fortschritt: bei Fright = Restzeit (Countdown), sonst Phase-Progress
+        let prog = 1;
+        let showBar = true;
+        if (isFright) {
+            prog = Math.max(0, Math.min(1, frightTimer / Math.max(0.0001, frightTotal)));
+        } else {
+            if (Number.isFinite(curPhase.t)) {
+                prog = Math.max(0, Math.min(1, phaseTime / curPhase.t));
+            } else {
+                showBar = false; // letzte unendliche Chase-Phase
+            }
+        }
+
+        // SCORE links
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
         ctx.font = "bold 16px 'Press Start 2P', monospace";
         ctx.fillStyle = "#ffd35a";
         ctx.fillText(`SCORE ${score}`, 12, H + HUD_HEIGHT / 2);
 
-        // Mode rechts
+        // MODE rechts (+ Restsekunden bei Fright)
         ctx.textAlign = "right";
         ctx.fillStyle = color;
-        ctx.fillText(label, W - 12, H + HUD_HEIGHT / 2);
+        const rightY = H + HUD_HEIGHT / 2;
+        if (isFright) {
 
-        // Progressbar mittig (nur wenn Phase endlich)
-        if (finite) {
+            ctx.fillText(`${label}`, W - 12, rightY);
+        } else {
+            ctx.fillText(label, W - 12, rightY);
+        }
+
+        // Progressbar mittig
+        if (showBar) {
             const barW = Math.min(240, W * 0.5);
             const barH = 6;
             const x = (W - barW) / 2;
@@ -426,6 +451,7 @@ export function startGameLoop(ctx, sprites, input) {
 
         ctx.restore();
     }
+
 
     function pixelPosFromEdge(vx, vy, edge, along) {
         let x = vx * TILE, y = vy * TILE;
@@ -586,7 +612,8 @@ export function startGameLoop(ctx, sprites, input) {
             // Overlay
             drawReadyOverlay(state.readyTimer, state.readyAutoStart);
             const cur = PHASES[phaseIdx];
-            drawHUDBelow(ctx, state.score, cur, phaseTime);
+            drawHUDBelow(ctx, state.score, cur, phaseTime, phaseIdx, state.frightTimer, FRIGHT_TIME);
+
 
 
             // Start-Logik
@@ -640,6 +667,24 @@ export function startGameLoop(ctx, sprites, input) {
         updatePinky (pinky,  dt, gSpeed, canEdge2x2Wrap, COLS, state, fr);
         updateInky  (inky,   dt, gSpeed, canEdge2x2Wrap, COLS, state, blinky, ROWS, fr);
         updateClyde (clyde,  dt, gSpeed, canEdge2x2Wrap, COLS, state, ROWS, fr);
+
+        if (state.frightTimer > 0) {
+            [blinky, pinky, inky, clyde].forEach(g => {
+                if (!g) return;
+                const stopped = (!g.dir || (g.dir.x === 0 && g.dir.y === 0)) && g.along === 0;
+                if (stopped) {
+                    const opts = [
+                        {x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}
+                    ].filter(d => canEdge2x2Wrap(g.vx, g.vy, d.x, d.y));
+                    if (opts.length) {
+                        const pick = opts[(Math.random() * opts.length) | 0];
+                        g.dir  = { ...pick };
+                        g.edge = { ...pick };
+                        g.along = 1; // 1px nudge
+                    }
+                }
+            });
+        }
 
 
         // --- Kollision prüfen ---
@@ -703,7 +748,9 @@ export function startGameLoop(ctx, sprites, input) {
 
         // HUD unten zeichnen
         const cur = PHASES[phaseIdx];
-        drawHUDBelow(ctx, state.score, cur, phaseTime);
+        drawHUDBelow(ctx, state.score, cur, phaseTime, phaseIdx, state.frightTimer, FRIGHT_TIME);
+
+
 
 
 

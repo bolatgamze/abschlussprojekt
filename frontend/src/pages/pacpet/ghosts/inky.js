@@ -51,7 +51,8 @@ export function updateInky(ghost, dt, speed, canEdge, cols, player, blinky, isFr
     const target = targetForInky(ghost, player, blinky, COLS, ROWS);
     ghost.debugTarget = target;                  // ← neu
 
-    const chooser = isFrightened ? (ghost, t, ce, c) => chooseDirAtNodeForwardBiased(ghost, t, ce, c, 0.7) : undefined;
+    const chooser = isFrightened ? (ghost, t, ce, c) =>
+        chooseDirAtNodeForwardBiased(ghost, t, ce, c, 0.7, 0.1) : undefined;
     advanceGhost(ghost, dt, speed, canEdge, cols, target, chooser);
 }
 
