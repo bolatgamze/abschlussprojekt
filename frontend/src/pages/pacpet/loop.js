@@ -1,33 +1,119 @@
-import { W, H, SIZE, SPEED, FRAME_TIME, TILE } from "./constants";
+import {W, H, SIZE, SPEED, FRAME_TIME, TILE, START} from "./constants";
 import { drawFrame } from "./draw";
 import { isTileWall, consumeDotAtVertex } from "./walls";
+import { createBlinky, updateBlinky } from "./ghosts/blinky.js";
+import { createPinky,  updatePinky  } from "./ghosts/pinky.js";
+import {drawGhost} from "./ghosts/base.js";
 
 export function startGameLoop(ctx, sprites, input) {
     const COLS = Math.floor(W / TILE);
     const ROWS = Math.floor(H / TILE);
 
+    // ---- BLINKY ----
+    const GHOST_SPEED = SPEED * 0.95;            // (OBEN ergänzt)
+    const blinky = createBlinky(START.blinky.vx, START.blinky.vy, START.blinky.dir);
+    const pinky = createPinky(START.pinky.vx, START.pinky.vy, START.pinky.dir);// (OBEN ergänzt)
+
     const state = {
+        mode: "ready", // "ready" wartet auf Start, "play" → läuft
         vx: 19,
         vy: 25,
 
         dir:  { x: 0, y: 0 },
         want: { x: -1, y: 0 },
-
         along: 0,
         edge:  { x: 0, y: 0 },
-
-        // Basis-Sprite schaut LINKS
         face:  { x: -1, y: 0 },
-
         pendingStop: false,
-
         last: performance.now(),
         acc: 0,
         frame: 0,
         rafId: 0,
-
-        score:0,
+        score: 0,
     };
+
+    // ---- Scatter/Chase Phasen (NEU) ----
+    // leicht verkürzt: S7, C20, S7, C20, S5, C20, S5, C∞
+    const PHASES = [
+        { mode: "scatter", t: 7 },
+        { mode: "chase",   t: 20 },
+        { mode: "scatter", t: 7 },
+        { mode: "chase",   t: 20 },
+        { mode: "scatter", t: 5 },
+        { mode: "chase",   t: 20 },
+        { mode: "scatter", t: 5 },
+        { mode: "chase",   t: Infinity },
+    ];
+    let phaseIdx = 0;
+    let phaseTime = 0;
+
+    function updatePhase(dt) {
+        phaseTime += dt;
+        const cur = PHASES[phaseIdx];
+        if (phaseTime >= cur.t) {
+            phaseTime = 0;
+            phaseIdx = Math.min(phaseIdx + 1, PHASES.length - 1);
+            const next = PHASES[phaseIdx];
+
+            // alle aktiven Geister hier rein
+            const ghosts = [blinky, pinky /*, inky, clyde */];
+
+            ghosts.forEach(g => {
+                g.mode = next.mode;
+                g.dir  = { x: -g.dir.x, y: -g.dir.y };
+                g.edge = { ...g.dir };
+                g.along = (g.along > 1e-6) ? (TILE - g.along) : 0; // nicht am Knoten spiegeln
+                g.allowUTurnOnce = true;                            // U-Turn am nächsten Knoten erlauben
+            });
+        }
+    }
+
+
+// Setzt Player + Blinky + Phasen zurück (Dots/Score optional)
+    function resetRun({ keepScore = true, levelReset = false } = {}) {
+        // Scatter/Chase neu starten
+        phaseIdx = 0;
+        phaseTime = 0;
+        blinky.mode = PHASES[0].mode; // meist "scatter"
+        blinky.allowUTurnOnce = false;
+
+        // Blinky-Position/Richtung
+        blinky.vx   = START.blinky.vx;
+        blinky.vy   = START.blinky.vy;
+        blinky.dir  = { ...START.blinky.dir };
+        blinky.edge = { ...START.blinky.dir };
+        blinky.along = 0;
+
+        // Pinky
+        pinky.mode = PHASES[0].mode;
+        pinky.allowUTurnOnce = false;
+        pinky.vx   = START.pinky.vx;
+        pinky.vy   = START.pinky.vy;
+        pinky.dir  = { ...START.pinky.dir };
+        pinky.edge = { ...START.pinky.dir };
+        pinky.along = 0;
+
+        // Player-Position/Richtung
+        state.vx = START.player.vx;
+        state.vy = START.player.vy;
+        state.dir  = { x: 0, y: 0 };
+        state.want = { x: -1, y: 0 };
+        state.edge = { x: 0, y: 0 };
+        state.along = 0;
+        state.face  = { ...START.player.face };
+        state.pendingStop = false;
+
+        // Animation/Timing
+        state.acc = 0;
+        state.frame = 1; // Mund zu
+        state.last = performance.now();
+
+        // Punkte behalten oder zurücksetzen
+        if (!keepScore) state.score = 0;
+
+        // Level komplett zurücksetzen? (Dots etc.) → später:
+        // if (levelReset) resetDots(); // (würden wir aus walls.js exportieren)
+    }
 
     const isZero = (v) => v.x === 0 && v.y === 0;
     const inVertexBounds = (x, y) => x >= 0 && y >= 0 && x <= COLS && y <= ROWS;
@@ -184,6 +270,73 @@ export function startGameLoop(ctx, sprites, input) {
         return { x: px, y: py };
     }
 
+    function drawStartOverlay() {
+        ctx.save();
+        ctx.fillStyle = "rgba(0,0,0,0.35)";
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 20px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("READY!", W / 2, H / 2 - 8);
+        ctx.font = "14px monospace";
+        ctx.fillText("Drücke eine Richtungstaste", W / 2, H / 2 + 16);
+        ctx.restore();
+    }
+
+    function drawModeHUD(ctx) {
+        const cur = PHASES[phaseIdx];
+        const label = cur.mode.toUpperCase(); // "SCATTER" | "CHASE"
+        const color = cur.mode === "scatter" ? "#00e676" : "#ff5252";
+        const prog = Number.isFinite(cur.t) ? Math.min(1, Math.max(0, phaseTime / cur.t)) : 1;
+
+        const padX = 12, padY = 6;
+        ctx.save();
+        ctx.font = "bold 14px monospace";
+        const textW = ctx.measureText(label).width;
+        const w = textW + padX * 2;
+        const h = 24;
+
+        const x = (W - w) / 2;
+        const y = 6;
+
+        // Badge-Hintergrund
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        const r = 8;
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+        ctx.fill();
+
+        // Fortschrittsbalken (nur wenn Phase endlich)
+        if (Number.isFinite(cur.t)) {
+            const barPad = 3;
+            const bx = x + barPad, by = y + h - 6, bw = w - barPad * 2, bh = 4;
+            ctx.fillStyle = "rgba(255,255,255,0.15)";
+            ctx.fillRect(bx, by, bw, bh);
+            ctx.fillStyle = color;
+            ctx.fillRect(bx, by, bw * prog, bh);
+        }
+
+        // Text
+        ctx.fillStyle = color;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(label, x + w / 2, y + 11);
+
+        ctx.restore();
+    }
+
+
+
+
     function step(now) {
         const dt = Math.min(0.033, (now - state.last) / 1000);
         state.last = now;
@@ -192,6 +345,28 @@ export function startGameLoop(ctx, sprites, input) {
         const anyKey = k.left || k.right || k.up || k.down;
         state.want = readWant(k);
 
+        if (state.mode === "ready") {
+            // Start bei erster Richtungstaste
+            if (anyKey) {
+                state.mode = "play";
+                resetRun({ keepScore: true, levelReset: false });
+
+            }
+
+            // trotzdem zeichnen (Idle-Frame + Overlay)
+            const p = pixelPosition();
+            drawFrame(ctx, sprites, p.x - SIZE / 2, p.y - SIZE / 2, 1, state.face.x, state.face.y);
+            drawGhost(ctx, blinky);
+            drawGhost(ctx, pinky);
+            drawStartOverlay();
+
+            state.rafId = requestAnimationFrame(step);
+            return;
+        }
+
+        // --- Scatter/Chase-Plan updaten (NEU) ---
+        updatePhase(dt);
+
         // „Tasten losgelassen → am nächsten Knoten stoppen“
         if (!anyKey && !isZero(state.dir)) state.pendingStop = true;
         if (anyKey) state.pendingStop = false;
@@ -199,6 +374,10 @@ export function startGameLoop(ctx, sprites, input) {
         tryStartFromStandstill();
         advanceMovement(dt);
         updateAnimation(dt);
+
+        // --- BLINKY updaten (NEU) ---
+        updateBlinky(blinky, dt, GHOST_SPEED, canEdge2x2Wrap, COLS, state);
+        updatePinky(pinky, dt, GHOST_SPEED, canEdge2x2Wrap, COLS, state);
 
         const p = pixelPosition();
         drawFrame(
@@ -210,6 +389,12 @@ export function startGameLoop(ctx, sprites, input) {
             state.face.x,
             state.face.y
         );
+
+        // (Ghost zeichnen: falls du eine drawGhost()-Routine hast, hier aufrufen)
+        drawGhost(ctx, blinky);
+        drawGhost(ctx, pinky);
+
+        drawModeHUD(ctx);
 
         ctx.save();
         ctx.fillStyle = "#fff";

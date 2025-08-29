@@ -9,3 +9,9 @@ export const FRAME_TIME = 0.12;      // 120 ms pro Mund-Frame
 export const EDGE_MARGIN = 0;
 export const COLS = 19;
 export const ROWS = 22;
+
+export const START = {
+    player: { vx: 19, vy: 25, face: { x: -1, y: 0 } },  // Basis-Sprite schaut links
+    blinky: { vx: 19, vy: 17, dir: { x: 1, y: 0 } },
+    pinky:  { vx: 21, vy: 21, dir: { x: -1, y: 0 } },
+};
