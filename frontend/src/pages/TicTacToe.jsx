@@ -4,10 +4,10 @@ import { useParams, useOutletContext } from "react-router-dom";
 const API = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 export default function TicTacToe() {
-    const { theme } = useParams();  // "KATZE" | "HUND"
-    const { me } = useOutletContext();
-    const player = theme === "KATZE" ? "cat" : "dog";
+    const { theme } = useParams();  // GANDALF | LOKI | RUFUS | SIMBA
+    const player = theme;
 
+    const { me } = useOutletContext();
     const [board, setBoard] = useState(Array(9).fill(null));
     const [turn, setTurn] = useState("player");
     const [winner, setWinner] = useState(null);   // "player" | "bot" | "draw"
@@ -17,9 +17,18 @@ export default function TicTacToe() {
     const [error, setError] = useState(null);
 
     const symbols = {
-        cat: { player: "🐱", bot: "🐟" },
-        dog: { player: "🐶", bot: "🦴" }
+        GANDALF: { player: "🧙", bot: "💀" },
+        LOKI: { player: "🦊", bot: "🕸️" },
+        RUFUS: { player: "🐶", bot: "🦴" },
+        SIMBA: { player: "🦁", bot: "🥩" }
     };
+    const displayNames = {
+        GANDALF: "Gandalf",
+        LOKI: "Loki",
+        RUFUS: "Rufus",
+        SIMBA: "Simba"
+    };
+
 
     // Session starten
     useEffect(() => {
@@ -163,7 +172,7 @@ export default function TicTacToe() {
     // === Normales Spiel ===
     return (
         <section className="card center">
-            <h1>Tic Tac Toe – {player === "cat" ? "🐱 Katze" : "🐶 Hund"}</h1>
+            <h1>Tic Tac Toe – {symbols[player].player} {displayNames[player]}</h1>
 
             <div className="board" style={{
                 display: "grid",

@@ -21,7 +21,11 @@ export default function Home(){
                 <button className="btn" onClick={()=>nav('/spielen?next=spiel4')}>
                     Spiel 4 — Memory
                 </button>
+                <button className="btn" onClick={()=>nav('/spielen?next=spiel5')}>
+                    Spiel 5 — Neu
+                </button>
             </div>
+
         </section>
     )
 }

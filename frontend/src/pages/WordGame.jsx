@@ -35,9 +35,11 @@ function maskAnswer(answer, revealedIdx, icon) {
 }
 
 export default function WordGame() {
-    const { theme } = useParams(); // "KATZE" | "HUND"
+    const { theme } = useParams(); // GANDALF | LOKI | RUFUS | SIMBA
     const { me } = useOutletContext(); // context from App.jsx
-    const isCat = theme === "KATZE";
+
+    // Zuordnung: welche Charaktere sind Katze, welche Hund?
+    const isCat = (theme === "GANDALF" || theme === "SIMBA");
     const ICON = isCat ? "🐱" : "🐶";
     const POOL = isCat ? CAT_QA : DOG_QA;
     const MAX_TRIES = 10;
@@ -55,7 +57,7 @@ export default function WordGame() {
     const [error, setError] = useState(null);
     const startedAtRef = useRef(Date.now());
 
-    // Session nur wenn User eingeloggt
+    // === Session starten ===
     useEffect(() => {
         if (!me || me.userId === "guest") return;
         const start = async () => {
@@ -69,18 +71,16 @@ export default function WordGame() {
                 if (res.ok && data.sessionId) {
                     setSessionId(data.sessionId);
                 } else {
-                    console.error("Fehler beim Starten der Session:", data);
                     setError("Spiel-Session konnte nicht gestartet werden.");
                 }
-            } catch (err) {
-                console.error("Netzwerkfehler beim Starten der Session:", err);
+            } catch {
                 setError("Netzwerkfehler beim Starten der Session.");
             }
         };
         start();
     }, [theme, me]);
 
-    // Neue Frage oder Spielende
+    // === Frage-Logik ===
     useEffect(() => {
         if (questionCount >= MAX_QUESTIONS) {
             setState("finished");
@@ -119,8 +119,7 @@ export default function WordGame() {
                 body: JSON.stringify({ score: finalScore, metadata: meta }),
             });
             await loadLeaderboard();
-        } catch (err) {
-            console.error("Fehler beim Speichern der Session:", err);
+        } catch {
             setError("Spiel-Session konnte nicht gespeichert werden.");
         }
     };
@@ -131,11 +130,9 @@ export default function WordGame() {
             if (res.ok) {
                 setLeaderboard(await res.json());
             } else {
-                console.warn("Leaderboard konnte nicht geladen werden:", res.status);
                 setError("Leaderboard konnte nicht geladen werden.");
             }
-        } catch (err) {
-            console.error("Netzwerkfehler beim Laden des Leaderboards:", err);
+        } catch {
             setError("Netzwerkfehler beim Laden des Leaderboards.");
         }
     };

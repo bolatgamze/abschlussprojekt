@@ -1,3 +1,6 @@
 package de.winona.backend.game;
 
-public enum PlayerTheme { KATZE, HUND }
+public enum PlayerTheme { GANDALF,
+    LOKI,
+    RUFUS,
+    SIMBA }

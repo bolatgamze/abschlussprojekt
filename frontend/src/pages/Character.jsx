@@ -90,8 +90,14 @@ export default function Character(){
                     src={char.images[frame]}
                     alt={char.name}
                     className="character-img"
+                    style={
+                        char.name === "Gandalf"
+                            ? { height: "400px" }
+                            : {}
+                    }
                 />
             </div>
+
             <div className="character-right">
                 <h2 className="character-title">{char.name}</h2>
                 <p className="muted">{char.description}</p>

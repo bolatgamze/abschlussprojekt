@@ -31,9 +31,21 @@ function shuffleCards(base) {
 }
 
 export default function MemoryGame() {
-    const { theme } = useParams(); // "KATZE" | "HUND"
+    const { theme } = useParams(); // GANDALF | LOKI | RUFUS | SIMBA
     const { me } = useOutletContext();
-    const set = theme === "KATZE" ? catCards : dogCards;
+
+    // 🐱🐶 Welche Karten verwenden?
+    const isCat = (theme === "GANDALF" || theme === "SIMBA");
+    const set = isCat ? catCards : dogCards;
+
+    // 🎭 Rückseiten-Icons pro Charakter
+    const backIcons = {
+        GANDALF: "🧙",
+        LOKI: "🦊",
+        RUFUS: "🐶",
+        SIMBA: "🦁"
+    };
+    const backSymbol = backIcons[theme] || "❓";
 
     const [sessionId, setSessionId] = useState(null);
     const [cards, setCards] = useState([]);
@@ -53,7 +65,7 @@ export default function MemoryGame() {
     useEffect(() => {
         const start = async () => {
             try {
-                if (!me || me.userId === "guest") return; // Gäste nicht speichern
+                if (!me || me.userId === "guest") return;
                 const res = await fetch(`${API}/api/game/session`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -159,7 +171,7 @@ export default function MemoryGame() {
 
     const finishSession = async (finalScore, meta) => {
         if (!sessionId) {
-            fetchLeaderboard(); // Gäste
+            fetchLeaderboard();
             return;
         }
         try {
@@ -175,12 +187,12 @@ export default function MemoryGame() {
         }
     };
 
-    // === Fertiges Layout: wie WordGame ===
+    // === Fertiges Layout ===
     if (finished) {
         return (
             <section className="card center" style={{ textAlign: "center" }}>
                 <h1 style={{ color: "var(--accent1)", marginBottom: "20px" }}>
-                    {lives > 0 ? "Spiel vorbei" : "Spiel vorbei"}
+                    Spiel vorbei
                 </h1>
                 <p>Dein Endscore: <b>{score}</b></p>
                 {error && <p style={{ color: "var(--accent2)", marginTop: "10px" }}>{error}</p>}
@@ -200,12 +212,10 @@ export default function MemoryGame() {
         );
     }
 
-    const backSymbol = theme === "KATZE" ? "🐱" : "🐶";
-
     // Normales Spiel-UI
     return (
         <section className="card center">
-            <h1>Memory Spiel – {theme === "KATZE" ? "Katze" : "Hund"}</h1>
+            <h1>Memory Spiel – {isCat ? "Katze" : "Hund"} ({theme})</h1>
 
             {timer > 0 && (
                 <div style={{ fontSize: "1.2rem", color: "green", marginBottom: "10px" }}>

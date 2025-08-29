@@ -270,3 +270,21 @@ label span {
     text-align: right;
     color: #fff;
 }
+.player-img {
+    width: 220px;
+    height: 220px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    margin: 0 auto;
+    display: block;
+
+    filter: drop-shadow(1px 0 white)
+    drop-shadow(-1px 0 white)
+    drop-shadow(0 1px white)
+    drop-shadow(0 -1px white);
+}
+
+.scale-gandalf {
+    transform: scale(1.3);
+}
+

@@ -21,16 +21,16 @@ export default function App(){
             <nav className="nav">
                 <div className="nav-inner">
                     <div className="brand">
-                        <Link to="/character/gandalf">
+                        <Link to="/character/Gandalf">
                             <img src="src/icons/gandalf-iconn.png" style={{ width: 28, height: 28, marginRight: 6 }} />
                         </Link>
-                        <Link to="/character/loki">
+                        <Link to="/character/Loki">
                             <img src="src/icons/loki-iconn.png" style={{ width: 28, height: 28, marginRight: 6 }} />
                         </Link>
-                        <Link to="/character/rufus">
+                        <Link to="/character/Rufus">
                             <img src="src/icons/rufus-iconn.png" style={{ width: 28, height: 28, marginRight: 6 }} />
                         </Link>
-                        <Link to="/character/simba">
+                        <Link to="/character/Simba">
                             <img src="src/icons/simba-iconn.png" style={{ width: 28, height: 28, marginRight: 6 }} />
                         </Link>
                     </div>
