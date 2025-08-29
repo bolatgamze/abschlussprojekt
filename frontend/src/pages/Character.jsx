@@ -11,13 +11,13 @@ import Simba1 from "../icons/Simba1.png";
 import Simba2 from "../icons/Simba2.png";
 
 const data = {
-    gandalf: {
+    Gandalf: {
         name: "Gandalf",
         images: [gandalf1, gandalf2],
         description: "Ein mächtiger (und fauler) BKH-Kater mit magischem Blick.",
         stats: {
             "Süßigkeit": 1000,
-            "Intelligenz": 234,
+            "Intelligenz": 650,
             "Mut": 75,
             "Magie": 999,
             "Schnelligkeit": 42,
@@ -58,11 +58,11 @@ const data = {
         description: "Ein stolzer BKH-Kater mit großem Herzen und einer Portion Übermut.",
         stats: {
     "Süßigkeit": 1000,
-        "Intelligenz": 250,
-        "Mut": 500,
-        "Magie": 200,
-        "Schnelligkeit": 300,
-        "Faulheit": 700,
+        "Intelligenz": 750,
+        "Mut": 600,
+        "Magie": 900,
+        "Schnelligkeit": 350,
+        "Faulheit": 450,
 },
 }
 }
