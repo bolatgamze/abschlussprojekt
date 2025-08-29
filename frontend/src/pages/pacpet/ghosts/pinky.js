@@ -1,4 +1,4 @@
-import { advanceGhost } from "./base.js";
+import {advanceGhost, chooseDirAtNodeForwardBiased} from "./base.js";
 import { START } from "../constants.js";
 
 // Start rechts von der Box (pass bei Bedarf an)
@@ -39,7 +39,11 @@ function targetForPinky(ghost, player, cols) {
 }
 
 // pro Frame von der Loop aufrufen
-export function updatePinky(ghost, dt, speed, canEdge, cols, player) {
+export function updatePinky(ghost, dt, speed, canEdge, cols, player, isFrightened) {
     const target = targetForPinky(ghost, player, cols);
-    advanceGhost(ghost, dt, speed, canEdge, cols, target);
+    ghost.debugTarget = target;                  // ← neu
+
+    const chooser = isFrightened ? (ghost, t, ce, c) => chooseDirAtNodeForwardBiased(ghost, t, ce, c, 0.7) : undefined;
+    advanceGhost(ghost, dt, speed, canEdge, cols, target, chooser);
 }
+

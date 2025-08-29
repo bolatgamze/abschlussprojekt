@@ -91,11 +91,18 @@ export const COLS = level[0].length;
 
 // ---- Kollision auf Tile-Ebene ----
 // Blockierend sind WALL (0) und BLOCK (3). Alles andere ist begehbar.
+
 export function isTileWall(tx, ty) {
-    if (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) return true;
-    const v = level[ty][tx];
-    return v === T.WALL;
+    if (!Number.isFinite(tx) || !Number.isFinite(ty)) return true;
+    tx = Math.floor(tx); ty = Math.floor(ty);
+    const rows = level.length, cols = level[0].length;
+    if (ty < 0 || ty >= rows || tx < 0 || tx >= cols) return true;
+    const cell = level[ty][tx];
+    return cell === T.WALL;
 }
+
+
+
 export function drawDots(ctx) {
     ctx.save();
     const S = SCALE;           // 2
@@ -123,7 +130,7 @@ export function drawDots(ctx) {
 // ---- Wände zeichnen (tileweise „neonblau“) ----
 export function drawWalls(ctx) {
     ctx.save();
-    ctx.strokeStyle = "#2e4cff";
+    ctx.strokeStyle = "#8a2be6";
     ctx.lineWidth = 2;
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {

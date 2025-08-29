@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { W, H } from "./pacpet/constants.js";
+import { W, H, HUD_HEIGHT } from "./pacpet/constants.js";
 import { loadSprites } from "./pacpet/assets.js";
 import { createInput } from "./pacpet/input.js";
 import { startGameLoop } from "./pacpet/loop.js";
@@ -14,7 +14,7 @@ export default function PacmanModular() {
         if (!el || !ctx) return;
 
         el.width = W;
-        el.height = H;
+        el.height = H + HUD_HEIGHT;
         ctx.imageSmoothingEnabled = false;
 
         const input = createInput();

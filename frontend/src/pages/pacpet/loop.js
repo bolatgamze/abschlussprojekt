@@ -1,18 +1,44 @@
-import {W, H, SIZE, SPEED, FRAME_TIME, TILE, START} from "./constants";
+import {
+    W,
+    H,
+    SIZE,
+    SPEED,
+    GHOST_SPEED,
+    FRAME_TIME,
+    TILE,
+    START,
+    MAX_STEPS,
+    HUD_HEIGHT,
+    HIT_R2,
+    FRIGHT_TIME, FRIGHT_SPEED_FACTOR
+} from "./constants";
 import { drawFrame } from "./draw";
 import { isTileWall, consumeDotAtVertex } from "./walls";
 import { createBlinky, updateBlinky } from "./ghosts/blinky.js";
 import { createPinky,  updatePinky  } from "./ghosts/pinky.js";
+import { createInky,   updateInky   } from "./ghosts/inky.js";
+import { createClyde,  updateClyde  } from "./ghosts/clyde.js";
+import { chooseDirAtNode } from "./ghosts/base.js"; // hinzufügen
+
 import {drawGhost} from "./ghosts/base.js";
+
+
+const DEBUG_GHOST_PATH = true;
+const DEBUG_GHOST_TARGET = true; // Target-Punkt anzeigen (ein/aus)
+
+
+
 
 export function startGameLoop(ctx, sprites, input) {
     const COLS = Math.floor(W / TILE);
     const ROWS = Math.floor(H / TILE);
 
     // ---- BLINKY ----
-    const GHOST_SPEED = SPEED * 0.95;            // (OBEN ergänzt)
+
     const blinky = createBlinky(START.blinky.vx, START.blinky.vy, START.blinky.dir);
-    const pinky = createPinky(START.pinky.vx, START.pinky.vy, START.pinky.dir);// (OBEN ergänzt)
+    const pinky = createPinky(START.pinky.vx, START.pinky.vy, START.pinky.dir);
+    const inky   = createInky  (START.inky.vx,   START.inky.vy,   START.inky.dir);
+    const clyde  = createClyde (START.clyde.vx,  START.clyde.vy,  START.clyde.dir);
 
     const state = {
         mode: "ready", // "ready" wartet auf Start, "play" → läuft
@@ -29,6 +55,12 @@ export function startGameLoop(ctx, sprites, input) {
         acc: 0,
         frame: 0,
         rafId: 0,
+        readyTimer: 0,          // Sekunden bis Start
+        readyAutoStart: false,  // true = nach Countdown automatisch starten
+        frightTimer: 0,
+        ghostEatChain: 200, // 200→400→800→1600 während eines Fright-Zyklus
+
+
         score: 0,
     };
 
@@ -56,15 +88,17 @@ export function startGameLoop(ctx, sprites, input) {
             const next = PHASES[phaseIdx];
 
             // alle aktiven Geister hier rein
-            const ghosts = [blinky, pinky /*, inky, clyde */];
-
+            const ghosts = [blinky, pinky, inky, clyde].filter(Boolean);
             ghosts.forEach(g => {
+                if (!g.dir) g.dir = { x: 1, y: 0 };
                 g.mode = next.mode;
                 g.dir  = { x: -g.dir.x, y: -g.dir.y };
                 g.edge = { ...g.dir };
-                g.along = (g.along > 1e-6) ? (TILE - g.along) : 0; // nicht am Knoten spiegeln
-                g.allowUTurnOnce = true;                            // U-Turn am nächsten Knoten erlauben
+                g.along = (g.along > 1e-6) ? (TILE - g.along) : 0;
+                g.allowUTurnOnce = true;
             });
+
+
         }
     }
 
@@ -92,6 +126,26 @@ export function startGameLoop(ctx, sprites, input) {
         pinky.dir  = { ...START.pinky.dir };
         pinky.edge = { ...START.pinky.dir };
         pinky.along = 0;
+
+        // Inky
+        inky.mode = PHASES[0].mode;
+        inky.allowUTurnOnce = false;
+        inky.vx   = START.inky.vx;
+        inky.vy   = START.inky.vy;
+        inky.dir  = { ...START.inky.dir };
+        inky.edge = { ...START.inky.dir };
+        inky.along = 0;
+
+        // Clyde
+        clyde.mode = PHASES[0].mode;
+        clyde.allowUTurnOnce = false;
+        clyde.vx   = START.clyde.vx;
+        clyde.vy   = START.clyde.vy;
+        clyde.dir  = { ...START.clyde.dir };
+        clyde.edge = { ...START.clyde.dir };
+        clyde.along = 0;
+
+
 
         // Player-Position/Richtung
         state.vx = START.player.vx;
@@ -125,10 +179,13 @@ export function startGameLoop(ctx, sprites, input) {
     // Wrap-tolerante Tile-Abfrage: wrappt HORIZONTAL (für Tunnel),
     // vertikal NICHT (oben/unten kein Warp).
     function tileIsWallWrapX(tx, ty) {
-        if (ty < 0 || ty >= ROWS) return true;        // vertikal weiterhin out=blocked
-        const wx = ((tx % COLS) + COLS) % COLS;       // wrap X in [0..COLS-1]
+        if (!Number.isFinite(ty) || !Number.isFinite(tx)) return true;
+        ty = Math.floor(ty);
+        if (ty < 0 || ty >= ROWS) return true;
+        const wx = ((Math.floor(tx) % COLS) + COLS) % COLS;
         return isTileWall(wx, ty);
     }
+
 
     // 2×2-Kantenprüfung, horizontale Kanten erlauben Wrap über den Rand
     function canEdge2x2Wrap(x, y, dx, dy) {
@@ -203,8 +260,11 @@ export function startGameLoop(ctx, sprites, input) {
         if (isZero(state.dir)) return;
 
         let dist = SPEED * dt;
-        while (dist > 0) {
-            const toNext = TILE - state.along;
+        let safety = 16; // max 16 Knoten pro Frame
+
+        while (dist > 0 && safety-- > 0) {
+            let toNext = TILE - state.along;
+            if (toNext <= 0) toNext = TILE; // Guard
 
             if (dist < toNext) {
                 state.along += dist;
@@ -218,28 +278,46 @@ export function startGameLoop(ctx, sprites, input) {
             state.vx += state.dir.x;
             state.vy += state.dir.y;
 
+            // Punkte (Dots)
             const gained = consumeDotAtVertex(state.vx, state.vy);
             if (gained) state.score += gained;
+            // Pill-Detection (fallback: gained >= 50 gilt als Pille)
+            if (gained === 50) {
+                state.frightTimer = FRIGHT_TIME;
+                state.ghostEatChain = 200;
+                // alle Geister auf frightened setzen + sofortiges U-Turn
+                [blinky, pinky, inky, clyde].forEach(g => {
+                    if (!g) return;
+                    g.frightened = true;
+                    g.dir  = { x: -g.dir.x, y: -g.dir.y };
+                    g.edge = { ...g.dir };
+                    if (g.along > 1e-6) g.along = TILE - g.along; else g.along = 0;
+                    g.allowUTurnOnce = true;
+                });
+            }
 
-            // --- HORIZONTALER WARP der Vertex-Koordinate ---
+
+
+
+            // horizontaler Warp
             if (state.vx < 0) state.vx = COLS;
             else if (state.vx > COLS) state.vx = 0;
 
-            // Stoppen am Knoten, falls angefordert
+            // Stop am Knoten?
             if (state.pendingStop) {
                 state.dir = { x: 0, y: 0 };
                 state.pendingStop = false;
                 break;
             }
 
-            // Abbiegen (wenn möglich)
+            // Abbiegen wenn möglich
             if ((state.want.x !== state.dir.x || state.want.y !== state.dir.y) &&
                 canEdge2x2Wrap(state.vx, state.vy, state.want.x, state.want.y)) {
                 state.dir = { ...state.want };
                 state.edge = { ...state.dir };
             }
 
-            // Geradeaus weiter? (mit Wrap-Check für horizontal)
+            // Geradeaus blockiert? → stoppen
             if (!canEdge2x2Wrap(state.vx, state.vy, state.dir.x, state.dir.y)) {
                 state.dir = { x: 0, y: 0 };
                 break;
@@ -249,6 +327,7 @@ export function startGameLoop(ctx, sprites, input) {
             setFaceFromDir();
         }
     }
+
 
     function updateAnimation(dt) {
         if (!isZero(state.dir)) {
@@ -270,70 +349,214 @@ export function startGameLoop(ctx, sprites, input) {
         return { x: px, y: py };
     }
 
-    function drawStartOverlay() {
+    function drawReadyOverlay(secondsLeft, autoStart) {
         ctx.save();
         ctx.fillStyle = "rgba(0,0,0,0.35)";
         ctx.fillRect(0, 0, W, H);
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 20px monospace";
-        ctx.textAlign = "center";
-        ctx.fillText("READY!", W / 2, H / 2 - 8);
-        ctx.font = "14px monospace";
-        ctx.fillText("Drücke eine Richtungstaste", W / 2, H / 2 + 16);
-        ctx.restore();
-    }
 
-    function drawModeHUD(ctx) {
-        const cur = PHASES[phaseIdx];
-        const label = cur.mode.toUpperCase(); // "SCATTER" | "CHASE"
-        const color = cur.mode === "scatter" ? "#00e676" : "#ff5252";
-        const prog = Number.isFinite(cur.t) ? Math.min(1, Math.max(0, phaseTime / cur.t)) : 1;
-
-        const padX = 12, padY = 6;
-        ctx.save();
-        ctx.font = "bold 14px monospace";
-        const textW = ctx.measureText(label).width;
-        const w = textW + padX * 2;
-        const h = 24;
-
-        const x = (W - w) / 2;
-        const y = 6;
-
-        // Badge-Hintergrund
-        ctx.fillStyle = "rgba(0,0,0,0.55)";
-        const r = 8;
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.lineTo(x + w - r, y);
-        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-        ctx.lineTo(x + w, y + h - r);
-        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        ctx.lineTo(x + r, y + h);
-        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-        ctx.lineTo(x, y + r);
-        ctx.quadraticCurveTo(x, y, x + r, y);
-        ctx.closePath();
-        ctx.fill();
-
-        // Fortschrittsbalken (nur wenn Phase endlich)
-        if (Number.isFinite(cur.t)) {
-            const barPad = 3;
-            const bx = x + barPad, by = y + h - 6, bw = w - barPad * 2, bh = 4;
-            ctx.fillStyle = "rgba(255,255,255,0.15)";
-            ctx.fillRect(bx, by, bw, bh);
-            ctx.fillStyle = color;
-            ctx.fillRect(bx, by, bw * prog, bh);
-        }
-
-        // Text
-        ctx.fillStyle = color;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(label, x + w / 2, y + 11);
+
+        if (secondsLeft > 0) {
+            // Countdown-Zahl
+            const n = Math.ceil(secondsLeft);
+            ctx.fillStyle = "#1dbf00";
+            ctx.font = "bold 48px 'Press Start 2P', monospace";
+
+            ctx.fillText(`${n}`, W / 2, H / 2 - 45);
+
+            ctx.font = "bold 14px 'Press Start 2P', monospace";
+
+            ctx.fillText(autoStart ? "gleich geht's weiter…" : "gleich startbereit…", W / 2, H / 2 + 24);
+        } else {
+            // Timer abgelaufen
+            ctx.fillStyle = "#1dbf00";
+            ctx.font = "bold 20px 'Press Start 2P', monospace";
+
+            ctx.fillText("READY!", W / 2, H / 2 -45);
+
+            ctx.font = "bold 14px 'Press Start 2P', monospace";
+
+            ctx.fillText(
+                autoStart ? "…" : "Drücke eine Richtungstaste",
+                W / 2,
+                H / 2 + 16
+            );
+        }
 
         ctx.restore();
     }
 
+
+    function drawHUDBelow(ctx, score, curPhase, phaseTime) {
+        // Bereich unter dem Spielfeld als Hintergrund
+        ctx.save();
+        ctx.fillStyle = "rgba(0,0,0,0.65)";
+        ctx.fillRect(0, H, W, HUD_HEIGHT);
+
+        // Phase / Label / Progress
+        const label = curPhase.mode.toUpperCase(); // "SCATTER" | "CHASE"
+        const color = curPhase.mode === "scatter" ? "#00e676" : "#ff5252";
+        const finite = Number.isFinite(curPhase.t);
+        const prog = finite ? Math.min(1, Math.max(0, phaseTime / curPhase.t)) : 1;
+
+        // Score links
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.font = "bold 16px 'Press Start 2P', monospace";
+        ctx.fillStyle = "#ffd35a";
+        ctx.fillText(`SCORE ${score}`, 12, H + HUD_HEIGHT / 2);
+
+        // Mode rechts
+        ctx.textAlign = "right";
+        ctx.fillStyle = color;
+        ctx.fillText(label, W - 12, H + HUD_HEIGHT / 2);
+
+        // Progressbar mittig (nur wenn Phase endlich)
+        if (finite) {
+            const barW = Math.min(240, W * 0.5);
+            const barH = 6;
+            const x = (W - barW) / 2;
+            const y = H + HUD_HEIGHT / 2 + 18;
+            ctx.fillStyle = "rgba(255,255,255,0.15)";
+            ctx.fillRect(x, y, barW, barH);
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, barW * prog, barH);
+        }
+
+        ctx.restore();
+    }
+
+    function pixelPosFromEdge(vx, vy, edge, along) {
+        let x = vx * TILE, y = vy * TILE;
+        if (edge?.x) x += edge.x * along;
+        if (edge?.y) y += edge.y * along;
+        return { x, y };
+    }
+
+    // Simuliere die nächsten Junction-Schritte (ändert den echten Geist NICHT)
+    function computeGhostPath(g, target, canEdge, cols, rows, maxSteps) {
+        // Ziel sauber clampen & runden
+        const tx = Math.max(0, Math.min(cols, Math.round(target.x)));
+        const ty = Math.max(0, Math.min(rows, Math.round(target.y)));
+
+        const sim = {
+            vx: g.vx, vy: g.vy,
+            dir: { ...(g.dir || { x: 0, y: 0 }) },
+            edge:{ ...(g.edge|| { x: 0, y: 0 }) },
+            along: Number.isFinite(g.along) ? g.along : 0,
+            allowUTurnOnce: false,
+        };
+
+        const pts = [pixelPosFromEdge(sim.vx, sim.vy, sim.edge, sim.along)];
+
+        for (let i = 0; i < maxSteps; i++) {
+            // Falls keine Richtung (z.B. gerade gestoppt): eine wählen
+            if (sim.dir.x === 0 && sim.dir.y === 0) {
+                const nd = chooseDirAtNode(sim, { x: tx, y: ty }, canEdge, cols);
+                sim.dir = { ...nd };
+                sim.edge = { ...nd };
+            }
+
+            // zum nächsten Knoten „springen“
+            let nx = sim.vx + sim.dir.x;
+            let ny = sim.vy + sim.dir.y;
+            if (sim.dir.x !== 0) {
+                if (nx < 0) nx = cols;
+                else if (nx > cols) nx = 0;
+            }
+            sim.vx = nx;
+            sim.vy = ny;
+            sim.along = 0;
+            sim.edge = { ...sim.dir };
+
+            pts.push({ x: sim.vx * TILE, y: sim.vy * TILE });
+
+            if (sim.vx === tx && sim.vy === ty) break;
+
+            const ndir = chooseDirAtNode(sim, { x: tx, y: ty }, canEdge, cols);
+            sim.dir = { ...ndir };
+            sim.edge = { ...ndir };
+        }
+
+        return pts;
+    }
+
+    function drawGhostPath(ctx, g, color) {
+        if (!DEBUG_GHOST_PATH || !g.debugTarget) return;
+        const pts = computeGhostPath(g, g.debugTarget, canEdge2x2Wrap, COLS, ROWS, MAX_STEPS);
+        if (pts.length < 2) return;
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function drawGhostTarget(ctx, g, cols, rows, color) {
+        if (!DEBUG_GHOST_TARGET || !g.debugTarget) return;
+
+        // Ziel robust runden & clampen
+        const tx = Math.max(0, Math.min(cols, Math.round(g.debugTarget.x)));
+        const ty = Math.max(0, Math.min(rows, Math.round(g.debugTarget.y)));
+
+        const x = tx * TILE;
+        const y = ty * TILE;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, 10, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        // kleiner Kontrast-Ring, damit es auf dunklen Wänden sichtbar bleibt
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgba(0,0,0,0.6)";
+        ctx.stroke();
+        ctx.restore();
+    }
+
+// Zentren
+    function playerCenter() {
+        const p = pixelPosition(); // liefert schon das Zentrum (weil du beim Draw -SIZE/2 verwendest)
+        return { x: p.x, y: p.y };
+    }
+
+    function ghostCenter(g) {
+        // gleiche Berechnung wie in drawGhost / debug
+        let x = g.vx * TILE, y = g.vy * TILE;
+        if (g.edge?.x) x += g.edge.x * g.along;
+        if (g.edge?.y) y += g.edge.y * g.along;
+        return { x, y };
+    }
+
+// Kollisionstest
+
+
+    function collideWithGhosts(ghosts) {
+        const pc = playerCenter();
+        for (const g of ghosts) {
+            if (!g) continue;
+            const gc = ghostCenter(g);
+            const dx = gc.x - pc.x;
+            const dy = gc.y - pc.y;
+            if (dx*dx + dy*dy <= HIT_R2) return g; // getroffen
+        }
+        return null;
+    }
+
+    function enterReady({ autoStart = true, seconds = 3, keepScore = true, levelReset = false } = {}) {
+        // Run zurücksetzen (Positionen/Phasen etc.)
+        resetRun({ keepScore, levelReset });
+
+        state.mode = "ready";
+        state.readyTimer = seconds;
+        state.readyAutoStart = autoStart;
+    }
 
 
 
@@ -346,23 +569,43 @@ export function startGameLoop(ctx, sprites, input) {
         state.want = readWant(k);
 
         if (state.mode === "ready") {
-            // Start bei erster Richtungstaste
-            if (anyKey) {
-                state.mode = "play";
-                resetRun({ keepScore: true, levelReset: false });
-
+            // Countdown ticken lassen
+            if (state.readyTimer > 0) {
+                state.readyTimer -= dt;
             }
 
-            // trotzdem zeichnen (Idle-Frame + Overlay)
+            // Szene zeichnen (Player/Geister stehen)
             const p = pixelPosition();
             drawFrame(ctx, sprites, p.x - SIZE / 2, p.y - SIZE / 2, 1, state.face.x, state.face.y);
+            // Geister im Ready zeigen:
             drawGhost(ctx, blinky);
             drawGhost(ctx, pinky);
-            drawStartOverlay();
+            drawGhost(ctx, inky);
+            drawGhost(ctx, clyde);
+
+            // Overlay
+            drawReadyOverlay(state.readyTimer, state.readyAutoStart);
+            const cur = PHASES[phaseIdx];
+            drawHUDBelow(ctx, state.score, cur, phaseTime);
+
+
+            // Start-Logik
+            if (state.readyTimer <= 0) {
+                if (state.readyAutoStart) {
+                    state.mode = "play";              // automatisch los
+                    state.last = performance.now();   // sauberes dt
+                } else if (anyKey) {
+                    state.mode = "play";              // per Taste los
+                    // (optional) Phase/Run nochmal resetten, wenn du willst:
+                    // resetRun({ keepScore: true });
+                    state.last = performance.now();
+                }
+            }
 
             state.rafId = requestAnimationFrame(step);
             return;
         }
+
 
         // --- Scatter/Chase-Plan updaten (NEU) ---
         updatePhase(dt);
@@ -375,9 +618,61 @@ export function startGameLoop(ctx, sprites, input) {
         advanceMovement(dt);
         updateAnimation(dt);
 
+        // Fright-Countdown
+        if (state.frightTimer > 0) {
+            state.frightTimer -= dt;
+            if (state.frightTimer <= 0) {
+                state.frightTimer = 0;
+                state.ghostEatChain = 200;
+                [blinky, pinky, inky, clyde].forEach(g => { if (g) g.frightened = false; });
+            }
+        } else {
+            // Nur wenn NICHT frightened: Scatter/Chase-Phasen weiterticken
+            updatePhase(dt);
+        }
+
+
         // --- BLINKY updaten (NEU) ---
-        updateBlinky(blinky, dt, GHOST_SPEED, canEdge2x2Wrap, COLS, state);
-        updatePinky(pinky, dt, GHOST_SPEED, canEdge2x2Wrap, COLS, state);
+        const gSpeed = state.frightTimer > 0 ? GHOST_SPEED * FRIGHT_SPEED_FACTOR : GHOST_SPEED;
+        const fr = state.frightTimer > 0;
+
+        updateBlinky(blinky, dt, gSpeed, canEdge2x2Wrap, COLS, state, fr);
+        updatePinky (pinky,  dt, gSpeed, canEdge2x2Wrap, COLS, state, fr);
+        updateInky  (inky,   dt, gSpeed, canEdge2x2Wrap, COLS, state, blinky, ROWS, fr);
+        updateClyde (clyde,  dt, gSpeed, canEdge2x2Wrap, COLS, state, ROWS, fr);
+
+
+        // --- Kollision prüfen ---
+        const hit = collideWithGhosts([blinky, pinky, inky, clyde]);
+        if (hit) {
+            if (state.frightTimer > 0 && hit.frightened) {
+                // Geist wird gegessen
+                state.score += state.ghostEatChain;
+                // Kettenwert verdoppeln (max 1600)
+                if (state.ghostEatChain < 1600) state.ghostEatChain *= 2;
+
+                // Geist „auferstehen“: zurück auf Start, frightened aus
+                const STARTS = { blinky: START.blinky, pinky: START.pinky, inky: START.inky, clyde: START.clyde };
+                const st = STARTS[hit.name] || START.blinky;
+                hit.vx = st.vx; hit.vy = st.vy;
+                hit.dir = { ...st.dir }; hit.edge = { ...st.dir };
+                hit.along = 0;
+                hit.frightened = false;
+                hit.allowUTurnOnce = false;
+            } else {
+                // normaler Tod → Ready mit Countdown
+                enterReady({ autoStart: true, seconds: 3, keepScore: true });
+                // sofort Ready-Frame zeichnen & return (wie bereits bei dir)
+                const p = pixelPosition();
+                drawFrame(ctx, sprites, p.x - SIZE / 2, p.y - SIZE / 2, 1, state.face.x, state.face.y);
+                drawGhost(ctx, blinky); drawGhost(ctx, pinky); drawGhost(ctx, inky); drawGhost(ctx, clyde);
+                drawReadyOverlay(state.readyTimer, state.readyAutoStart);
+                state.rafId = requestAnimationFrame(step);
+                return;
+            }
+        }
+
+
 
         const p = pixelPosition();
         drawFrame(
@@ -391,16 +686,27 @@ export function startGameLoop(ctx, sprites, input) {
         );
 
         // (Ghost zeichnen: falls du eine drawGhost()-Routine hast, hier aufrufen)
-        drawGhost(ctx, blinky);
-        drawGhost(ctx, pinky);
+        drawGhost(ctx, blinky, state.frightTimer);
+        drawGhost(ctx, pinky, state.frightTimer);
+        drawGhost(ctx, inky, state.frightTimer);
+        drawGhost(ctx, clyde, state.frightTimer);
 
-        drawModeHUD(ctx);
+        drawGhostPath(ctx, blinky, "#ff5252");
+        drawGhostPath(ctx, pinky,  "#ff80ff");
+        drawGhostPath(ctx, inky,   "#40e0e0");
+        drawGhostPath(ctx, clyde,  "#ffb852");
 
-        ctx.save();
-        ctx.fillStyle = "#fff";
-        ctx.font = "16px monospace";
-        ctx.fillText(`SCORE ${state.score}`, 8, 18);
-        ctx.restore();
+        drawGhostTarget(ctx, blinky, COLS, ROWS, "#ff5252");
+        drawGhostTarget(ctx, pinky,  COLS, ROWS, "#ff80ff");
+        drawGhostTarget(ctx, inky,   COLS, ROWS, "#40e0e0");
+        drawGhostTarget(ctx, clyde,  COLS, ROWS, "#ffb852");
+
+        // HUD unten zeichnen
+        const cur = PHASES[phaseIdx];
+        drawHUDBelow(ctx, state.score, cur, phaseTime);
+
+
+
 
         state.rafId = requestAnimationFrame(step);
     }
