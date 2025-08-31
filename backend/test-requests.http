@@ -19,20 +19,27 @@ Content-Type: application/json
   "password": "geheim123"
 }
 
-### Spiel starten
+### Profil laden
+GET http://localhost:8080/api/profile/{{userId}}
+
+### Spiel starten (Beispiel TicTacToe mit Gandalf)
 POST http://localhost:8080/api/game/session
 Content-Type: application/json
 
 {
+  "userId": "{{userId}}",
   "gameType": "TICTACTOE",
-  "playerTheme": "KATZE"
+  "playerTheme": "GANDALF"
 }
 
-### Spiel beenden (Beispiel)
-POST http://localhost:8080/api/game/session/1234-5678-90/finish
+### Spiel beenden (Beispiel-Session)
+POST http://localhost:8080/api/game/session/{{sessionId}}/finish
 Content-Type: application/json
 
 {
   "score": 42,
-  "metadata": {"result":"WIN"}
+  "metadata": { "result": "WIN" }
 }
+
+### Leaderboard abfragen
+GET http://localhost:8080/api/game/leaderboard?gameType=TICTACTOE&playerTheme=GANDALF
