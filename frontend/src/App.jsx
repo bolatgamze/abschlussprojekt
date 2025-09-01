@@ -6,7 +6,7 @@ export default function App(){
     const nav = useNavigate()
 
     function randomGame(){
-        const spiele = ["spiel1", "spiel2", "spiel3", "spiel4"]
+        const spiele = ["spiel1", "spiel2", "spiel3", "spiel4", "spiel5"]
         const zufall = spiele[Math.floor(Math.random() * spiele.length)]
         nav(`/spielen?next=${zufall}`)
     }

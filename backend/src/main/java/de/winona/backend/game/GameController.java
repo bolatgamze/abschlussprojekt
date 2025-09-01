@@ -35,12 +35,19 @@ public class GameController {
         gs.setPlayerTheme(PlayerTheme.valueOf(req.playerTheme().toUpperCase()));
 
         if (req.userId() != null && !req.userId().isBlank()) {
-            users.findById(UUID.fromString(req.userId())).ifPresent(gs::setUser);
+            try {
+                UUID uid = UUID.fromString(req.userId());
+                users.findById(uid).ifPresent(gs::setUser);
+                System.out.println("🎮 Start game for user=" + uid);
+            } catch (IllegalArgumentException e) {
+                System.err.println("⚠️ Ungültige userId: " + req.userId());
+            }
         }
 
         sessions.save(gs);
         return new StartSessionRes(gs.getId(), "Spielrunde gestartet.");
     }
+
 
     @PostMapping("/session/{id}/finish")
     public Map<String, String> finish(@PathVariable UUID id, @RequestBody FinishReq req) {

@@ -1,92 +1,185 @@
-# Abschlussprojekt – Dokumentation
+Abschlussprojekt – Dokumentation
+Architekturüberblick
 
-## Backend
+Das Projekt besteht aus Spring Boot Backend und React + Vite Frontend.
+Kommunikation erfolgt über eine REST-API. Daten werden in einer PostgreSQL-Datenbank gespeichert.
 
-Das Backend wurde mit **Spring Boot** entwickelt.
-Die wichtigsten Teile sind:
+Backend
+1. Technologien
 
-### 1. Authentifizierung (`/api/auth`)
+Spring Boot (REST-API)
 
-* **Register** (`POST /api/auth/register`)
-  Neue Benutzer können sich registrieren. Benutzername und Passwort werden in der Datenbank gespeichert, das Passwort wird mit `BCryptPasswordEncoder` verschlüsselt.
-* **Login** (`POST /api/auth/login`)
-  Ein Benutzer kann sich mit seinen Zugangsdaten anmelden. Es wird geprüft, ob Benutzername und Passwort passen.
-* **Profil** (`GET /api/auth/profile/{userId}`)
-  Zeigt Statistiken, letzte Spiele und Bestleistungen eines Spielers. (Die Logik greift auf das `GameSessionRepository` zu.)
+Spring Security (Password-Hashing mit BCrypt)
 
-### 2. Datenbank & Entities
+JPA / Hibernate
 
-* **User**: Enthält `id`, `username`, `passwordHash`.
-* **GameSession**: Speichert gespielte Runden, Punktzahl, Datum, etc.
-* Die Datenbank ist **PostgreSQL**. Migrationen werden über **Flyway** verwaltet.
+PostgreSQL + Flyway
 
-### 3. Security
+Lombok
 
-* CSRF ist deaktiviert (da wir ein SPA-Frontend haben).
-* Endpunkte `/api/auth/**` sind öffentlich erreichbar.
-* Passwörter werden mit `BCrypt` gehasht.
+Jackson für JSON
 
----
+2. Authentifizierung (/api/auth)
 
-## Frontend
+Register (POST /api/auth/register)
+Neue Benutzer können sich registrieren. Passwörter werden verschlüsselt gespeichert.
 
-Das Frontend wurde mit **React + Vite** erstellt. Wir nutzen **react-router-dom** für die Navigation.
+Login (POST /api/auth/login)
+Benutzer kann sich mit Zugangsdaten anmelden.
 
-### 1. Navigation (`App.jsx`)
+Profil (GET /api/profile/{userId})
+Gibt Statistiken, letzte Spiele und Bestleistungen zurück.
 
-* **Home** (`/`) – Startseite mit Buttons zu den Spielen.
-* **Login** (`/login`) – Anmelden oder Registrieren.
-* **Profil** (`/profile/:userId`) – Zeigt die Statistiken des eingeloggten Benutzers.
-* **Spielen** (`/spielen`) – Auswahl der Spielerfigur (Katze oder Hund).
-* **Spiele**:
+👉 Hinweis: GET /api/auth/profile/{userId} im AuthController ist deprecated und wurde durch ProfileController ersetzt.
 
-    * `spiel1/:theme` → **TicTacToe**
-    * `spiel2/:theme` → **Wort-Raten** (noch nicht fertig)
-    * `spiel3/:theme` → **Pac-Pet** (noch nicht fertig)
+3. Datenbank & Entities
 
-### 2. Login / Register
+User (ap_user)
 
-* Über das Formular kann man sich registrieren oder anmelden.
-* Nach erfolgreichem Login wird man zum Profil (`/profile/:userId`) weitergeleitet.
+id (UUID, PK)
 
-### 3. Profilseite
+username (unique)
 
-* Holt Daten von `/api/auth/profile/:userId`.
-* Zeigt:
+password_hash
 
-    * letzte Spiele
-    * Bestleistungen
-    * Statistiken (z.B. gespielte Spiele, Durchschnitt, Lieblingsthema)
+role
 
-### 4. Spiele
+created_at
 
-* **TicTacToe**
+GameSession (ap_game_session)
 
-    * Spieler wählt Katze 🐱 oder Hund 🐶.
-    * Gegner ist der Computer, der Fische 🐟 oder Knochen 🦴 setzt.
-    * Gewinner wird automatisch erkannt (3 in einer Reihe).
+id (UUID, PK)
 
-* **Wort-Raten** (Platzhalter)
+user_id (FK, nullable → Gäste möglich)
 
-* **Pac-Pet** (Platzhalter)
+game_type (z. B. TICTACTOE, MEMORY, WORD)
 
----
+player_theme (z. B. GANDALF, LOKI, RUFUS, SIMBA)
 
-## Zusammenfassung
+started_at, finished_at
 
-Das Projekt besteht also aus zwei Hauptteilen:
+score
 
-* **Backend**: Verwaltung von Benutzern, Spielen und Statistiken (Spring Boot + PostgreSQL).
-* **Frontend**: Darstellung der Oberfläche, Spielelogik, Login/Register und Profil (React + Vite).
+metadata (jsonb)
 
-Die Verbindung erfolgt über **REST-API**.
-Das Projekt ist modular aufgebaut: Jeder Teil (Auth, Spiele, UI) kann erweitert werden.
+4. Repositories
 
----
+UserRepository
 
-## ToDo (für die Zukunft)
+findByUsername
 
-* JWT-Authentifizierung statt einfachem Login.
-* Spiele 2 & 3 implementieren.
-* Styling verbessern.
-* Multiplayer-Modus prüfen.
+existsByUsername
+
+GameSessionRepository
+
+findTop5ByUserIdOrderByFinishedAtDesc
+
+findBestScoresByUser
+
+findStatsByUser
+
+findTopThemeByUser
+
+findTop10ByGameAndTheme (Leaderboard)
+
+5. REST-Endpunkte
+   AuthController (/api/auth)
+
+POST /register → Benutzer registrieren
+
+POST /login → Benutzer einloggen
+
+ProfileController (/api/profile)
+
+GET /{userId} → Profil (Statistiken, letzte Spiele, Bestleistungen)
+
+GameController (/api/game)
+
+POST /session → Session starten
+
+POST /session/{id}/finish → Session beenden & Score speichern
+
+GET /leaderboard?gameType=...&playerTheme=... → Top 10 Scoreboard
+
+UserController (/api/users)
+
+GET /api/users → alle Benutzer
+
+POST /api/users → neuen Benutzer anlegen
+
+GET /api/users/{id} → Benutzer abfragen
+
+GET /api/users/exists/{username} → Benutzername existiert?
+
+PingController
+
+GET /api/ping → Healthcheck
+
+6. Security
+
+CSRF deaktiviert (SPA)
+
+/api/auth/** ist öffentlich
+
+CORS erlaubt für http://localhost:5173 & http://localhost:3000
+
+Passwörter werden mit BCrypt gehasht
+
+Frontend (React + Vite)
+1. Navigation (Router)
+
+/ → Home
+
+/login → Login/Register
+
+/profile/:userId → Profil
+
+/spielen → Charakter-Auswahl
+
+/spiel1/:theme → TicTacToe
+
+/spiel2/:theme → WordGame
+
+/spiel3/:theme → PacPet
+
+/spiel4/:theme → MemoryGame
+
+/spiel5/:theme → Neues Spiel
+
+/character/:id → Charakter-Seite
+
+* → 404
+
+2. Login & Registrierung
+
+Registrierung/Login mit /api/auth
+
+Gastmodus möglich (keine Speicherung)
+
+3. Profilseite
+
+Lädt Daten von /api/profile/:userId
+
+Zeigt letzte Spiele, Bestleistungen, Statistiken
+
+4. Spiele
+
+TicTacToe (Spieler vs. Bot, Score 0/50/100)
+
+WordGame (Quiz, Katze/Hund Fragen, Leaderboard)
+
+MemoryGame (Paare finden, Punkte/Leben)
+
+PacPet (Platzhalter)
+
+PawPanik (Platzhalter)
+
+ToDo
+
+JWT Auth
+
+Multiplayer-Modus
+
+PacPet & PawPanik fertigstellen
+
+Styling verbessern

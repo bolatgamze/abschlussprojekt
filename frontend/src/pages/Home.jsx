@@ -22,7 +22,7 @@ export default function Home(){
                     Spiel 4 — Memory
                 </button>
                 <button className="btn" onClick={()=>nav('/spielen?next=spiel5')}>
-                    Spiel 5 — Neu
+                    Spiel 5 — Paw-Panik
                 </button>
             </div>
 
