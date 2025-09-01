@@ -22,35 +22,32 @@ export default function Profile() {
     useEffect(() => {
         fetch(API + "/api/profile/" + userId)
             .then((r) => r.json())
-            .then((d) => {
-                setData(d);
-            })
-            .catch(() => {
-                setData({ recentGames: [], bestScores: [], stats: {} });
-            });
+            .then((d) => setData(d))
+            .catch(() => setData({ recentGames: [], bestScores: [], stats: {} }));
     }, [userId]);
 
     if (!data) return <p>Lade Profil...</p>;
 
     return (
-        <section className="card bg-black text-green-400 p-6 rounded-2xl shadow-xl relative overflow-hidden text-center">
+        <section className="card bg-black p-6 rounded-2xl shadow-xl relative overflow-hidden text-center">
+            {/* Üst Başlık */}
             <h1 className="profile-title">
                 MEIN PROFIL ({data.username?.toUpperCase()})
             </h1>
 
-            <div className="space-y-8">
-                {/* Recent Games */}
+            <div className="space-y-10">
+                {/* Son Oyunlar */}
                 <div>
                     <h2 className="profile-heading">== LETZTE SPIELE ==</h2>
-                    <div className="space-y-3">
+                    <div className="recent-game-list">
                         {data.recentGames && data.recentGames.length > 0 ? (
                             data.recentGames.map((g, i) => (
                                 <div
                                     key={i}
-                                    className="bg-gray-900 border border-green-500 p-3 rounded-lg shadow-md text-center"
+                                    className="recent-game bg-gray-900 border p-4 rounded-lg shadow-md text-center"
                                 >
-                                    {/* Top row: Date + Game */}
-                                    <div className="text-sm font-bold mb-1">
+                                    {/* Tarih + Oyun */}
+                                    <div className="text-sm font-bold mb-2">
                                         [
                                         {g.finishedAt
                                             ? new Date(g.finishedAt).toLocaleDateString()
@@ -58,15 +55,15 @@ export default function Profile() {
                                         {g.gameType}]
                                     </div>
 
-                                    {/* Bottom row: Character + Score */}
-                                    <div className="flex justify-center items-center gap-2">
+                                    {/* Karakter + Skor */}
+                                    <div className="flex justify-center items-center gap-3">
                                         {characterImages[g.playerTheme] && (
                                             <img
                                                 src={characterImages[g.playerTheme]}
                                                 alt={g.playerTheme}
                                                 style={{
-                                                    width: "24px",
-                                                    height: "24px",
+                                                    width: "28px",
+                                                    height: "28px",
                                                     objectFit: "contain",
                                                     imageRendering: "pixelated",
                                                     filter:
@@ -75,7 +72,9 @@ export default function Profile() {
                                             />
                                         )}
                                         <span>({g.playerTheme})</span>
-                                        <span className="ml-2">— Score: {g.score ?? "-"}</span>
+                                        <span className="ml-2 font-semibold">
+                                            — Score: {g.score ?? "-"}
+                                        </span>
                                     </div>
                                 </div>
                             ))
@@ -88,15 +87,12 @@ export default function Profile() {
                 {/* Best Scores */}
                 <div>
                     <h2 className="profile-heading">== BESTLEISTUNGEN ==</h2>
-                    <ul className="space-y-2">
+                    <ul className="best-scoreboard mt-4">
                         {data.bestScores && data.bestScores.length > 0 ? (
                             data.bestScores.map((b, i) => (
-                                <li
-                                    key={i}
-                                    className="bg-gray-900 border border-blue-500 p-2 rounded-lg flex justify-between max-w-xs mx-auto"
-                                >
-                                    <span>{b.gameType}:</span>
-                                    <span className="font-bold">{b.maxScore}</span>
+                                <li key={i}>
+                                    <span className="score-game">{b.gameType}:</span>
+                                    <span className="score-value">{b.maxScore}</span>
                                 </li>
                             ))
                         ) : (
@@ -106,16 +102,15 @@ export default function Profile() {
                 </div>
 
                 {/* Statistics */}
-                <div>
+                <div className="stats-section">
                     <h2 className="profile-heading">== STATISTIK ==</h2>
-                    <div className="space-y-4">
+                    <div className="space-y-6 mt-4">
                         <div className="bg-gray-900 p-4 rounded-lg border border-red-500 max-w-xs mx-auto">
                             <p className="text-lg font-bold">
                                 {data.stats?.total ?? 0} Spiele insgesamt
                             </p>
                         </div>
 
-                        {/* Average per GameType */}
                         <div className="bg-gray-900 p-4 rounded-lg border border-red-500 space-y-2 max-w-xs mx-auto">
                             <p className="font-bold">Durchschnitt pro Spieltyp:</p>
                             {data.stats?.avgScores &&
@@ -128,8 +123,7 @@ export default function Profile() {
                                 )}
                         </div>
 
-                        {/* Favorite Character */}
-                        <div className="bg-gray-900 p-4 rounded-lg border border-red-500 flex flex-col items-center gap-2 max-w-xs mx-auto">
+                        <div className="bg-gray-900 p-4 rounded-lg border border-red-500 flex flex-col items-center gap-3 max-w-xs mx-auto">
                             <p className="text-sm">Lieblings-Charakter:</p>
                             {data.stats?.topTheme &&
                             characterImages[data.stats.topTheme] ? (

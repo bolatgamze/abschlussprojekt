@@ -330,7 +330,6 @@ label span {
     text-align: center;
     margin-top: 10px;
 }
-/* Sadece PawPanik için özel kart */
 .paw-card {
     position: relative;
     background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
@@ -339,7 +338,7 @@ label span {
     padding: 20px;
     width: fit-content;
     max-width: 860px;
-    margin: 20px auto; /* nav ile aralık */
+    margin: 20px auto;
     box-shadow: 0 0 0 2px rgba(255,255,255,.05), 0 18px 40px rgba(0,0,0,.45);
 }
 .paw-card::before,
@@ -382,3 +381,119 @@ label span {
 .game-info .zeit { color: lime; }
 .game-info .score { color: dodgerblue; }
 .game-info .leben { color: red; }
+/* =========================
+   Profile-Seite Styling
+   ========================= */
+
+/* Profil başlığı (üst) beyaz */
+.profile-title {
+    font-size: 20px;
+    color: white;
+    text-shadow: 0 0 6px rgba(255,255,255,0.8);
+    text-align: center;
+    margin-bottom: 28px;
+    display: block;
+}
+
+/* Bölüm başlıkları (ör. BESTLEISTUNGEN, LETZTE SPIELE, STATISTIK) sarı */
+.profile-heading {
+    font-size: 16px;
+    color: var(--accent1);
+    text-shadow: 0 0 6px rgba(255, 174, 0, 0.6);
+    text-align: center;
+    margin: 28px 0 18px;
+    display: block;
+}
+
+/* Statistik kutuları içindeki yazılar beyaz */
+.stats-section,
+.stats-section p,
+.stats-section span {
+    color: white !important;
+    text-shadow: none !important;
+}
+
+
+/* Son 5 oyun listesi */
+.recent-game-list > .recent-game {
+    margin-bottom: 22px;
+}
+
+.recent-game:last-child {
+    margin-bottom: 0;
+}
+
+/* Bestleistungen (en iyi skorlar) */
+.best-scoreboard {
+    list-style: none;
+    padding: 0;
+    margin: 0 auto;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.best-scoreboard li {
+    background: #000;
+    border: 2px solid var(--accent1);
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    font-family: "Press Start 2P", monospace;
+    font-size: 12px;
+    border-radius: 6px;
+    box-shadow: inset 0 0 10px rgba(255,255,255,0.1);
+}
+
+/* === Sıralı Renkler (Recent Games + Bestleistungen) === */
+.recent-game-list .recent-game:nth-child(1),
+.best-scoreboard li:nth-child(1) {
+    border-color: var(--accent1);
+    color: var(--accent1);
+    text-shadow: 0 0 8px var(--accent1);
+}
+
+.recent-game-list .recent-game:nth-child(2),
+.best-scoreboard li:nth-child(2) {
+    border-color: var(--accent2);
+    color: var(--accent2);
+    text-shadow: 0 0 8px var(--accent2);
+}
+
+.recent-game-list .recent-game:nth-child(3),
+.best-scoreboard li:nth-child(3) {
+    border-color: var(--accent3);
+    color: var(--accent3);
+    text-shadow: 0 0 8px var(--accent3);
+}
+
+.recent-game-list .recent-game:nth-child(4),
+.best-scoreboard li:nth-child(4) {
+    border-color: var(--accent4);
+    color: var(--accent4);
+    text-shadow: 0 0 8px var(--accent4);
+}
+
+.recent-game-list .recent-game:nth-child(5),
+.best-scoreboard li:nth-child(5) {
+    border-color: var(--accent5);
+    color: var(--accent5);
+    text-shadow: 0 0 8px var(--accent5);
+}
+
+.score-game {
+    text-align: left;
+}
+
+.score-value {
+    text-align: right;
+    font-weight: bold;
+}
+
+
+/* Neon Glow Animation */
+@keyframes scoreboard-glow {
+    from { box-shadow: 0 0 4px rgba(0,255,153,0.3); }
+    to { box-shadow: 0 0 16px rgba(0,255,153,0.8); }
+}

@@ -9,9 +9,10 @@ import TicTacToe from './pages/TicTacToe.jsx'
 import MemoryGame from './pages/MemoryGame.jsx'
 import WordGame from './pages/WordGame.jsx'
 import PacPetCurrent from "./pages/PacPet.jsx";
-import './App.css'
 import Character from "./pages/Character.jsx";
-import Spiel5 from "./pages/Spiel5.jsx";
+import PawPanik from "./pages/PawPanik.jsx";
+
+import './App.css'
 
 const router = createBrowserRouter([
     {
@@ -23,18 +24,15 @@ const router = createBrowserRouter([
             { path: 'login', element: <Login /> },
             { path: 'profile/:userId', element: <Profile /> },
             { path: 'spiel1/:theme', element: <TicTacToe /> },
-            { path: 'spiel4/:theme', element: <MemoryGame /> },
-            { path: 'spiel5/:theme', element: <Spiel5 /> },
-            { path: 'character/:id', element: <Character /> },
-            { path: '*', element: <p>404 – Seite nicht gefunden</p> },
             { path: 'spiel2/:theme', element: <WordGame /> },
             { path: "spiel3/:theme", element: <PacPetCurrent /> },
+            { path: 'spiel4/:theme', element: <MemoryGame /> },
+            { path: 'spiel5/:theme', element: <PawPanik /> },
+            { path: 'character/:id', element: <Character /> },
+            { path: '*', element: <p>404 – Seite nicht gefunden</p> }
         ],
     },
 ]);
-
-
-
 
 createRoot(document.getElementById('root')).render(
     <RouterProvider router={router}/>

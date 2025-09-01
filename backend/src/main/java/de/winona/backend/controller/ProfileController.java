@@ -24,7 +24,7 @@ public class ProfileController {
         var user = users.findById(userId).orElseThrow();
 
         // Letzte Spiele (als DTOs zurückgeben)
-        var recentGames = sessions.findTop5ByUser_IdOrderByFinishedAtDesc(userId)
+        var recentGames = sessions.findTop5ByUser_IdOrderByStartedAtDesc(userId)
                 .stream()
                 .map(g -> new GameSessionDTO(
                         g.getId(),

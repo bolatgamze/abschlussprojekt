@@ -7,8 +7,8 @@ import java.util.*;
 
 public interface GameSessionRepository extends JpaRepository<GameSession, UUID> {
 
-    // letzte 5 Spiele eines Users
-    List<GameSession> findTop5ByUser_IdOrderByFinishedAtDesc(UUID userId);
+    // letzte 5 Spiele eines Users (egal ob fertig oder nicht)
+    List<GameSession> findTop5ByUser_IdOrderByStartedAtDesc(UUID userId);
 
     // Bestleistungen pro Spieltyp
     @Query("SELECT g.gameType as gameType, MAX(g.score) as maxScore " +
