@@ -497,3 +497,60 @@ label span {
     from { box-shadow: 0 0 4px rgba(0,255,153,0.3); }
     to { box-shadow: 0 0 16px rgba(0,255,153,0.8); }
 }
+.game-info .zeit {
+    color: var(--accent4) !important; /* temaya uygun neon yeşil */
+    text-shadow: 0 0 6px var(--accent4), 0 0 12px var(--accent4);
+}
+
+.game-info .score {
+    color: var(--accent3) !important; /* temaya uygun cyan/mavi */
+    text-shadow: 0 0 6px var(--accent3), 0 0 12px var(--accent3);
+}
+/* === MemoryGame Status-Liste === */
+.status-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 auto;
+    max-width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-family: "Press Start 2P", monospace;
+    font-size: 12px;
+    text-align: center;
+}
+
+.status-list li {
+    background: #000;
+    border: 2px solid var(--accent1);
+    padding: 8px 12px;
+    border-radius: 6px;
+    box-shadow: inset 0 0 10px rgba(255,255,255,0.1);
+}
+
+/* Renkler sırayla dağıtılıyor */
+.status-list li:nth-child(1) {
+    border-color: var(--accent1);
+    color: var(--accent1);
+    text-shadow: 0 0 8px var(--accent1);
+}
+.status-list li:nth-child(2) {
+    border-color: var(--accent2);
+    color: var(--accent2);
+    text-shadow: 0 0 8px var(--accent2);
+}
+.status-list li:nth-child(3) {
+    border-color: var(--accent3);
+    color: var(--accent3);
+    text-shadow: 0 0 8px var(--accent3);
+}
+.status-list li:nth-child(4) {
+    border-color: var(--accent4);
+    color: var(--accent4);
+    text-shadow: 0 0 8px var(--accent4);
+}
+.status-list li:nth-child(5) {
+    border-color: var(--accent5);
+    color: var(--accent5);
+    text-shadow: 0 0 8px var(--accent5);
+}
