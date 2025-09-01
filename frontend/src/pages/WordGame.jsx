@@ -286,7 +286,7 @@ export default function WordGame() {
     if (state === "finished") {
         return (
             <section className="card center" style={{ textAlign: "center" }}>
-                <h1 style={{ color: "var(--accent1)", marginBottom: "20px" }}>Spiel vorbei</h1>
+                <h1 style={{ color: "var(--accent1)", marginBottom: "20px" }}>Game Over</h1>
                 <p>Dein Endscore: <b>{score < 0 ? 0 : score}</b></p>
                 {error && <p style={{ color: "var(--accent2)", marginTop: "10px" }}>{error}</p>}
                 <h2 style={{ color: "var(--accent3)", margin: "20px 0" }}>🏆 Leaderboard 🏆</h2>
@@ -353,7 +353,8 @@ export default function WordGame() {
                                     display: "inline-flex",
                                     alignItems: "center",
                                     gap: 8,
-                                    whiteSpace: "nowrap", // verhindert Zeilenumbruch zwischen Icon und Name
+                                    whiteSpace: "nowrap",
+                                    // verhindert Zeilenumbruch zwischen Icon und Name
                                 }}
                             >
     {ICONS[player] && (
@@ -362,39 +363,26 @@ export default function WordGame() {
             alt=""
             aria-hidden="true"
             style={{
-                width: 24,
-                height: 24,
+                width: 40,
+                height: 40,
                 display: "block",   // entfernt hässlichen Unterstrich-Abstand
                 objectFit: "contain",
+                filter:
+                    "drop-shadow(1px 0 white) drop-shadow(-1px 0 white) drop-shadow(0 1px white) drop-shadow(0 -1px white)"
             }}
         />
     )}
-                                <span>{DISPLAY_NAMES[player] || (isCat ? "Katze" : "Hund")}</span>
+                                <span>({DISPLAY_NAMES[player] || (isCat ? "Katze" : "Hund")})</span>
   </span>
                         </h1>
 
 
-                        <div
-                            style={{
-                                display: "flex",
-                                flexDirection: "column",
-                                alignItems: "stretch",
-                                gap: 6,
-                                fontWeight: 700,
-                                minWidth: 160,
-                                justifySelf: "end",
-                            }}
-                        >
-  <span style={{ display: "block", textAlign: "right", border: "2px solid var(--accent3)", padding: "4px 10px", borderRadius: 8 }}>
-    Punkte: {score}
-  </span>
-                            <span style={{ display: "block", textAlign: "right", border: "2px solid var(--accent3)", padding: "4px 10px", borderRadius: 8 }}>
-    Frage: {questionCount + 1}/{MAX_QUESTIONS}
-  </span>
-                            <span style={{ display: "block", textAlign: "right", border: "2px solid var(--accent3)", padding: "4px 10px", borderRadius: 8 }}>
-    Versuche: {Math.max(0, MAX_TRIES - tries)}
-  </span>
+                        <div className="scoreboard">
+                            <span className="score-box">Score: {score}</span>
+                            <span className="score-box">Frage: {questionCount + 1}/{MAX_QUESTIONS}</span>
+                            <span className="score-box">Versuche: {Math.max(0, MAX_TRIES - tries)}</span>
                         </div>
+
 
                     </div>
 

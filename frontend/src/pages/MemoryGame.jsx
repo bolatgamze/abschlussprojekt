@@ -216,7 +216,7 @@ export default function MemoryGame() {
         return (
             <section className="card center" style={{ textAlign: "center" }}>
                 <h1 style={{ color: "var(--accent1)", marginBottom: "20px" }}>
-                    Spiel vorbei
+                    Game Over
                 </h1>
                 <p>Dein Endscore: <b>{score}</b></p>
                 {error && <p style={{ color: "var(--accent2)", marginTop: "10px" }}>{error}</p>}
@@ -245,10 +245,13 @@ export default function MemoryGame() {
                     <img
                         src={backIcons[theme]}
                         alt={displayNames?.[theme] || theme}
-                        style={{ width: 28, height: 28, objectFit: "contain" }}
+                        style={{ width: 40, height: 40, objectFit: "contain",
+                            filter:
+                                "drop-shadow(1px 0 white) drop-shadow(-1px 0 white) drop-shadow(0 1px white) drop-shadow(0 -1px white)"
+                        }}
                     />
                 )}
-                {displayNames?.[theme] || theme}
+                ({displayNames?.[theme] || theme})
             </h1>
 
 

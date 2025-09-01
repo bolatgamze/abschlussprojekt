@@ -186,9 +186,11 @@ export default function TicTacToe() {
                 <img
                     src={symbols[player].player}
                     alt={displayNames[player]}
-                    style={{ width: 28, height: 28, objectFit: "contain" }}
+                    style={{ width: 40, height: 40, objectFit: "contain",
+                        filter:
+                            "drop-shadow(1px 0 white) drop-shadow(-1px 0 white) drop-shadow(0 1px white) drop-shadow(0 -1px white)"}}
                 />
-                {displayNames[player]}
+                ({displayNames[player]})
             </h1>
 
 
