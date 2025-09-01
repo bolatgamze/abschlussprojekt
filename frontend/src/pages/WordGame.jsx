@@ -18,6 +18,10 @@ const CAT_QA = [
     { q: "Welches Instrument spielen Katzen, wenn die Tür halb offen steht?", a: "MIAUKONZERT" },
     { q: "Wie nennt man den Tempel, in dem die Sonne durch’s Fenster scheint?", a: "FENSTERBRETT" },
     { q: "Die oberste Regel der Kartons lautet: Wenn ich sitze, bin ich…?", a: "RICH" },
+    { q: "Welches Hightech-Gerät ist nur eine teure Version vom Karton?", a: "KATZENBETT" },
+    { q: "Wie nennt man den geheimen Angriff auf Füße unter der Decke?", a: "MONSTERJAGD" },
+    { q: "Was ist laut Katze die beste Jahreszeit?", a: "FRUEHLING" },
+    { q: "Wie heißt das altehrwürdige Ritual, Tastaturen zu blockieren?", a: "SCHREIBSPERRE" }
 ];
 
 // 🐶 Hunde-Fragen
@@ -30,6 +34,10 @@ const DOG_QA = [
     { q: "Wie heißt die Disziplin, Menschen zum Kraulen zu überreden?", a: "BLICKTRAINING" },
     { q: "Womit beweist der Hund echte Liebe und sabbert dabei?", a: "KUSS" },
     { q: "Wer ist der offiziell beste Junge?", a: "ICH" },
+    { q: "Wie nennt man den großen Wettkampf, wer schneller frisst?", a: "NAPFSPRINT" },
+    { q: "Was ist die wahre Aufgabe jedes Spaziergangs?", a: "MARKIEREN" },
+    { q: "Wie heißt das alte Ritual, sich im Schlamm zu wälzen?", a: "SPAABAD" },
+    { q: "Welches Wort ist magischer als jedes andere?", a: "LECKERLI" }
 ];
 
 function pickRandom(arr) {
@@ -37,7 +45,6 @@ function pickRandom(arr) {
 }
 
 function maskAnswer(answer, revealedIdx) {
-    // Verdeckte Positionen -> null (wir zeigen dort das Tierbild)
     return answer.split("").map((ch, i) => (revealedIdx.has(i) ? ch : null));
 }
 
@@ -58,7 +65,7 @@ export default function WordGame() {
         SIMBA: "Simba",
     };
 
-    const { me } = useOutletContext(); // context from App.jsx
+    const { me } = useOutletContext();
 
     // Katze/Hund Pool
     const isCat = player === "GANDALF" || player === "SIMBA";
@@ -66,7 +73,6 @@ export default function WordGame() {
     const MAX_TRIES = 10;
     const MAX_QUESTIONS = 5;
 
-    // ---- State ----
     const [sessionId, setSessionId] = useState(null);
     const [qa, setQa] = useState(null);            // aktuelle Frage
     const [asked, setAsked] = useState(new Set()); // bereits gestellte Fragen
@@ -80,7 +86,6 @@ export default function WordGame() {
     const [error, setError] = useState(null);
     const startedAtRef = useRef(Date.now());
 
-    // ---- Session starten (optional, nur wenn nicht guest) ----
     useEffect(() => {
         if (!me || me.userId === "guest") return;
         const start = async () => {
@@ -103,7 +108,6 @@ export default function WordGame() {
         start();
     }, [theme, me]);
 
-    // ---- Erste Frage setzen + Reset bei Theme-Wechsel ----
     useEffect(() => {
         const first = pickRandom(POOL);
         setQa(first);
@@ -113,9 +117,9 @@ export default function WordGame() {
         setScore(0);
         setState("playing");
         setGuess("");
-    }, [player]); // nur wenn anderes Theme gewählt wird
+    }, [player]);
 
-    // ---- Frage-Logik (Reveal, Rundenende) ----
+
     useEffect(() => {
         if (!qa) return; // warten, bis Frage gesetzt wurde
 
@@ -246,23 +250,22 @@ export default function WordGame() {
         }
     };
 
-    // ===== Layout-Konstanten (Antwort-Gitter + Frage) =====
-    const LETTER_SIZE = 44; // Kachelgröße
-    const GAP = 8;          // Abstand
-    const MAX_PER_ROW = 10; // max. Kacheln pro Zeile
+
+    const LETTER_SIZE = 44;
+    const GAP = 8;
+    const MAX_PER_ROW = 10;
 
     const answerLen = qa ? qa.a.length : 0;
     const perRow = Math.min(answerLen, MAX_PER_ROW);
     const QUESTION_H = 110;
 
-    // Dynamische Höhe für den Antwortbereich (kein Scroll, Box wächst)
+
     const rows = perRow > 0 ? Math.ceil(answerLen / perRow) : 0;
     const ANSWER_H = rows > 0 ? rows * LETTER_SIZE + (rows - 1) * GAP + 24 : LETTER_SIZE + 24;
 
     const gridWidth = perRow > 0 ? perRow * LETTER_SIZE + (perRow - 1) * GAP : 0;
 
-    // --- UI ---
-    // Loading-Guard: gilt für alle Zustände
+
     if (!qa) {
         return (
             <section
@@ -312,7 +315,6 @@ export default function WordGame() {
                 boxSizing: "border-box",
             }}
         >
-            {/* ==== Grid: Header | Main (Frage+Antwort) | Footer ==== */}
             <div
                 style={{
                     display: "grid",
@@ -321,7 +323,6 @@ export default function WordGame() {
                     height: "100%",
                 }}
             >
-                {/* HEADER mit Scoreboard rechts */}
                 <div>
                     <div
                         style={{
@@ -343,7 +344,6 @@ export default function WordGame() {
                             {DISPLAY_NAMES[player] || (isCat ? "Katze" : "Hund")}
                         </h1>
 
-                        {/* Scoreboard (HUD) */}
                         <div
                             style={{
                                 display: "flex",
@@ -368,7 +368,6 @@ export default function WordGame() {
                     {error && <p style={{ color: "var(--accent2)", marginTop: 6 }}>{error}</p>}
                 </div>
 
-                {/* MAIN: Frage + Antwort */}
                 <main>
                     {/* Frage */}
                     <div>
@@ -387,7 +386,6 @@ export default function WordGame() {
                         </p>
                     </div>
 
-                    {/* Antwort */}
                     <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 8 }}>
                         <h2 style={{ margin: 0 }}>Antwort</h2>
 
@@ -401,7 +399,6 @@ export default function WordGame() {
                                 padding: "10px 0",
                             }}
                         >
-                            {/* inneres Grid: exakt perRow Spalten → sauberes Umbrechen */}
                             <div
                                 style={{
                                     display: "grid",
@@ -447,7 +444,6 @@ export default function WordGame() {
                     </div>
                 </main>
 
-                {/* FOOTER: Form oder Win/Lose */}
                 <footer>
                     {state !== "lost" && state !== "won" && (
                         <form onSubmit={handleSubmit}>
