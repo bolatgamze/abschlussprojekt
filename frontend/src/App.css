@@ -554,3 +554,33 @@ label span {
     color: var(--accent5);
     text-shadow: 0 0 8px var(--accent5);
 }
+.scoreboard {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-weight: 700;
+    min-width: 160px;
+    justify-self: end;
+}
+.score-box {
+    display: block;
+    text-align: right;
+    border: 2px solid #555;
+    padding: 4px 10px;
+    border-radius: 8px;
+}
+.scoreboard .score-box:nth-child(1) {
+    border-color: var(--accent4);
+    color: var(--accent4);
+    text-shadow: 0 0 8px var(--accent4);
+}
+.scoreboard .score-box:nth-child(2) {
+    border-color: var(--accent2);
+    color: var(--accent2);
+    text-shadow: 0 0 8px var(--accent2);
+}
+.scoreboard .score-box:nth-child(3) {
+    border-color: var(--accent3);
+    color: var(--accent3);
+    text-shadow: 0 0 8px var(--accent3);
+}

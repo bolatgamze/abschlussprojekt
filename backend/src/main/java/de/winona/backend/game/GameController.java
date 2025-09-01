@@ -31,8 +31,8 @@ public class GameController {
     @PostMapping("/session")
     public StartSessionRes start(@RequestBody StartSessionReq req) {
         GameSession gs = new GameSession();
-        gs.setGameType(GameType.valueOf(req.gameType().toUpperCase()));
-        gs.setPlayerTheme(PlayerTheme.valueOf(req.playerTheme().toUpperCase()));
+        gs.setGameType(req.gameType().toUpperCase());
+        gs.setPlayerTheme(req.playerTheme().toUpperCase());
 
         if (req.userId() != null && !req.userId().isBlank()) {
             try {
@@ -72,19 +72,25 @@ public class GameController {
     }
 
     @GetMapping("/leaderboard")
-    public List<Map<String, Object>> leaderboard(@RequestParam String gameType,
-                                                 @RequestParam String playerTheme) {
-        var rows = sessions.findTop10ByGameAndTheme(gameType, playerTheme);
+    public List<Map<String, Object>> leaderboard(@RequestParam String gameType) {
+        var rows = sessions.findTop10ByGame(gameType);
 
         List<Map<String, Object>> result = new ArrayList<>();
         for (Object[] row : rows) {
             String username = (String) row[0];
             Integer score = (Integer) row[1];
+
+            if (username == null || username.isBlank()) {
+                continue;
+            }
+
             result.add(Map.of(
-                    "username", (username != null && !username.isBlank()) ? username : "Gast",
+                    "username", username,
                     "score", score
             ));
         }
         return result;
     }
+
+
 }

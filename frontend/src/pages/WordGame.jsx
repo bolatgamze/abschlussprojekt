@@ -5,6 +5,7 @@ import Gandalf from "../icons/gandalf-iconn.png";
 import Loki from "../icons/loki-iconn.png";
 import Rufus from "../icons/rufus-iconn.png";
 import Simba from "../icons/simba-iconn.png";
+import trophyIcon from "../icons/trophy.png";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
@@ -167,7 +168,8 @@ export default function WordGame() {
 
     const loadLeaderboard = async () => {
         try {
-            const res = await fetch(`${API}/api/game/leaderboard?gameType=WORD&playerTheme=${theme}`);
+            const res = await fetch(
+                `${API}/api/game/leaderboard?gameType=WORD`);
             if (res.ok) {
                 setLeaderboard(await res.json());
             } else {
@@ -289,17 +291,58 @@ export default function WordGame() {
                 <h1 style={{ color: "var(--accent1)", marginBottom: "20px" }}>Spiel vorbei</h1>
                 <p>Dein Endscore: <b>{score < 0 ? 0 : score}</b></p>
                 {error && <p style={{ color: "var(--accent2)", marginTop: "10px" }}>{error}</p>}
-                <h2 style={{ color: "var(--accent3)", margin: "20px 0" }}>🏆 Leaderboard 🏆</h2>
+
+                {/* Trophy headline */}
+                <h2
+                    style={{
+                        color: "var(--accent3)",
+                        margin: "20px 0",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "12px",
+                    }}
+                >
+                    <img
+                        src={trophyIcon}
+                        alt="Trophy"
+                        style={{
+                            width: 32,
+                            height: 32,
+                            objectFit: "contain",
+                            filter:
+                                "drop-shadow(1px 0 white) drop-shadow(-1px 0 white) drop-shadow(0 1px white) drop-shadow(0 -1px white)",
+                        }}
+                    />
+                    Bestenliste
+                    <img
+                        src={trophyIcon}
+                        alt="Trophy"
+                        style={{
+                            width: 32,
+                            height: 32,
+                            objectFit: "contain",
+                            filter:
+                                "drop-shadow(1px 0 white) drop-shadow(-1px 0 white) drop-shadow(0 1px white) drop-shadow(0 -1px white)",
+                        }}
+                    />
+                </h2>
+
+                {/* Leaderboard list */}
                 <ul style={{ listStyle: "none", padding: 0 }}>
                     {leaderboard.map((row, i) => (
-                        <li key={i} style={{ margin: "6px 0", fontSize: "12px" }}>
-                            {i + 1}. <span style={{ color: "var(--accent4)" }}>{row.username}</span> — {row.score}
+                        <li key={i} style={{ margin: "6px 0", fontSize: "13px", fontWeight: 600 }}>
+                            {i + 1}.{" "}
+                            <span style={{ color: "var(--accent4)", textTransform: "uppercase" }}>
+                            {row.username}
+                        </span>{" "}
+                            — {row.score}
                         </li>
                     ))}
                 </ul>
             </section>
         );
-    }
+}
 
     return (
         <section
@@ -337,23 +380,17 @@ export default function WordGame() {
                                 alignItems: "center",
                                 gap: 12,
                                 margin: 0,
-                                flexWrap: "wrap",   // erlaubt Umbruch bei wenig Platz
+                                flexWrap: "wrap",
                                 lineHeight: 1.1,
                             }}
                         >
-                            {/* Titelblock */}
                             <span>Wort-Raten</span>
-
-                            {/* Trennstrich */}
-                            <span aria-hidden="true" style={{ opacity: 0.6 }}></span>
-
-                            {/* Icon + Name zusammenhalten */}
                             <span
                                 style={{
                                     display: "inline-flex",
                                     alignItems: "center",
                                     gap: 8,
-                                    whiteSpace: "nowrap", // verhindert Zeilenumbruch zwischen Icon und Name
+                                    whiteSpace: "nowrap",
                                 }}
                             >
     {ICONS[player] && (
@@ -362,16 +399,22 @@ export default function WordGame() {
             alt=""
             aria-hidden="true"
             style={{
-                width: 24,
-                height: 24,
-                display: "block",   // entfernt hässlichen Unterstrich-Abstand
+                width: 64,
+                height: 64,
                 objectFit: "contain",
+
+                padding: 6,
+                background: "transparent",
+                filter:
+                    "drop-shadow(1px 0 white) drop-shadow(-1px 0 white) drop-shadow(0 1px white) drop-shadow(0 -1px white)" // 👈 beyaz glow etkisi
             }}
         />
+
     )}
-                                <span>{DISPLAY_NAMES[player] || (isCat ? "Katze" : "Hund")}</span>
+                                <span>{DISPLAY_NAMES[player]}</span>
   </span>
                         </h1>
+
 
 
                         <div
@@ -385,15 +428,12 @@ export default function WordGame() {
                                 justifySelf: "end",
                             }}
                         >
-  <span style={{ display: "block", textAlign: "right", border: "2px solid var(--accent3)", padding: "4px 10px", borderRadius: 8 }}>
-    Punkte: {score}
-  </span>
-                            <span style={{ display: "block", textAlign: "right", border: "2px solid var(--accent3)", padding: "4px 10px", borderRadius: 8 }}>
-    Frage: {questionCount + 1}/{MAX_QUESTIONS}
-  </span>
-                            <span style={{ display: "block", textAlign: "right", border: "2px solid var(--accent3)", padding: "4px 10px", borderRadius: 8 }}>
-    Versuche: {Math.max(0, MAX_TRIES - tries)}
-  </span>
+                            <div className="scoreboard">
+                                <span className="score-box">Punkte: {score}</span>
+                                <span className="score-box">Frage: {questionCount + 1}/{MAX_QUESTIONS}</span>
+                                <span className="score-box">Versuche: {Math.max(0, MAX_TRIES - tries)}</span>
+                            </div>
+
                         </div>
 
                     </div>

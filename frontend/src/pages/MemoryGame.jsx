@@ -182,9 +182,7 @@ export default function MemoryGame() {
 
     const fetchLeaderboard = async () => {
         try {
-            const res = await fetch(
-                `${API}/api/game/leaderboard?gameType=MEMORY&playerTheme=${theme}`
-            );
+            const res = await fetch(`${API}/api/game/leaderboard?gameType=MEMORY`);
             const data = await res.json();
             setLeaderboard(data);
         } catch (err) {

@@ -28,12 +28,13 @@ public class ProfileController {
                 .stream()
                 .map(g -> new GameSessionDTO(
                         g.getId(),
-                        g.getGameType().name(),    // Enum -> String
-                        g.getPlayerTheme().name(), // Enum -> String
+                        g.getGameType(),
+                        g.getPlayerTheme(),
                         g.getStartedAt(),
                         g.getFinishedAt(),
                         g.getScore()
                 ))
+
                 .toList();
 
         // Bestleistungen (gameType + maxScore)
