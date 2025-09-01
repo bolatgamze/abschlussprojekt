@@ -1,8 +1,8 @@
 import { useParams } from "react-router-dom"
 import { useState, useEffect } from "react"
 
-import gandalf1 from "../icons/3.png"
-import gandalf2 from "../icons/4.png"
+import gandalf1 from "../icons/Gandalf1.png"
+import gandalf2 from "../icons/Gandalf2.png"
 import Loki1 from "../icons/Loki1.png";
 import Loki2 from "../icons/Loki2.png";
 import Rufus1 from "../icons/Rufus1.png";
@@ -90,11 +90,6 @@ export default function Character(){
                     src={char.images[frame]}
                     alt={char.name}
                     className="character-img"
-                    style={
-                        char.name === "Gandalf"
-                            ? { height: "400px" }
-                            : {}
-                    }
                 />
             </div>
 

@@ -253,15 +253,13 @@ export default function WordGame() {
 
     const LETTER_SIZE = 44;
     const GAP = 8;
-    const MAX_PER_ROW = 10;
 
     const answerLen = qa ? qa.a.length : 0;
-    const perRow = Math.min(answerLen, MAX_PER_ROW);
+    const perRow = answerLen;
     const QUESTION_H = 110;
 
 
-    const rows = perRow > 0 ? Math.ceil(answerLen / perRow) : 0;
-    const ANSWER_H = rows > 0 ? rows * LETTER_SIZE + (rows - 1) * GAP + 24 : LETTER_SIZE + 24;
+    const ANSWER_H = LETTER_SIZE + 24;
 
     const gridWidth = perRow > 0 ? perRow * LETTER_SIZE + (perRow - 1) * GAP : 0;
 
@@ -275,8 +273,9 @@ export default function WordGame() {
                     minHeight: 560,
                     margin: "0 auto",
                     display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    flexDirection: "column",
+                    padding: 16,
+                    boxSizing: "border-box",
                 }}
             >
                 <p style={{ opacity: 0.8 }}>Lade Frage…</p>
@@ -306,7 +305,7 @@ export default function WordGame() {
         <section
             className="card center"
             style={{
-                width: "min(92vw, 640px)",
+                width: `max(min(92vw, 640px), ${gridWidth + 48}px)`,
                 minHeight: 560, // wächst bei langen Antworten automatisch
                 margin: "0 auto",
                 display: "flex",
@@ -326,43 +325,77 @@ export default function WordGame() {
                 <div>
                     <div
                         style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: 12,
+                            display: "grid",
+                            gridTemplateColumns: "1fr auto", // links dehnbar, rechts so breit wie nötig
+                            columnGap: 12,
+                            alignItems: "start",
                         }}
                     >
-                        <h1 style={{ display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
-                            Wort-Raten –
-                            {ICONS[player] && (
-                                <img
-                                    src={ICONS[player]}
-                                    alt={DISPLAY_NAMES[player]}
-                                    style={{ width: 28, height: 28, objectFit: "contain" }}
-                                />
-                            )}
-                            {DISPLAY_NAMES[player] || (isCat ? "Katze" : "Hund")}
+                        <h1
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 12,
+                                margin: 0,
+                                flexWrap: "wrap",   // erlaubt Umbruch bei wenig Platz
+                                lineHeight: 1.1,
+                            }}
+                        >
+                            {/* Titelblock */}
+                            <span>Wort-Raten</span>
+
+                            {/* Trennstrich */}
+                            <span aria-hidden="true" style={{ opacity: 0.6 }}></span>
+
+                            {/* Icon + Name zusammenhalten */}
+                            <span
+                                style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 8,
+                                    whiteSpace: "nowrap", // verhindert Zeilenumbruch zwischen Icon und Name
+                                }}
+                            >
+    {ICONS[player] && (
+        <img
+            src={ICONS[player]}
+            alt=""
+            aria-hidden="true"
+            style={{
+                width: 24,
+                height: 24,
+                display: "block",   // entfernt hässlichen Unterstrich-Abstand
+                objectFit: "contain",
+            }}
+        />
+    )}
+                                <span>{DISPLAY_NAMES[player] || (isCat ? "Katze" : "Hund")}</span>
+  </span>
                         </h1>
+
 
                         <div
                             style={{
                                 display: "flex",
-                                alignItems: "center",
-                                gap: 8,
-                                flexWrap: "wrap",
+                                flexDirection: "column",
+                                alignItems: "stretch",
+                                gap: 6,
                                 fontWeight: 700,
+                                minWidth: 160,
+                                justifySelf: "end",
                             }}
                         >
-              <span style={{ border: "2px solid var(--accent3)", padding: "4px 10px", borderRadius: 8 }}>
-                Punkte: {score}
-              </span>
-                            <span style={{ border: "2px solid var(--accent3)", padding: "4px 10px", borderRadius: 8 }}>
-                Frage: {questionCount + 1}/{MAX_QUESTIONS}
-              </span>
-                            <span style={{ border: "2px solid var(--accent3)", padding: "4px 10px", borderRadius: 8 }}>
-                Versuche: {Math.max(0, MAX_TRIES - tries)}
-              </span>
+  <span style={{ display: "block", textAlign: "right", border: "2px solid var(--accent3)", padding: "4px 10px", borderRadius: 8 }}>
+    Punkte: {score}
+  </span>
+                            <span style={{ display: "block", textAlign: "right", border: "2px solid var(--accent3)", padding: "4px 10px", borderRadius: 8 }}>
+    Frage: {questionCount + 1}/{MAX_QUESTIONS}
+  </span>
+                            <span style={{ display: "block", textAlign: "right", border: "2px solid var(--accent3)", padding: "4px 10px", borderRadius: 8 }}>
+    Versuche: {Math.max(0, MAX_TRIES - tries)}
+  </span>
                         </div>
+
                     </div>
 
                     {error && <p style={{ color: "var(--accent2)", marginTop: 6 }}>{error}</p>}
