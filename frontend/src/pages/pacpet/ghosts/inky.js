@@ -24,27 +24,42 @@ export function createInky(
 // 1) Tile T = 2 vor Pac-Man (mit Up-Bug: oben ⇒ (-2,-2))
 // 2) Vektor B→T verdoppeln; Ziel = B + 2*(T - B)
 function targetForInky(ghost, player, blinky, cols, rows) {
+    // "2 tiles ahead" -> bei SCALE=2 sind das 4 Vertex-Schritte
+    const AHEAD = 4;
+
+    // Scatter: unten rechts (Ziel darf am Rand liegen)
     if (ghost.mode === "scatter") {
-        // Scatter-Ecke: unten-rechts
-        return { x: (cols*2)-1, y: (rows*2)-1 }; // weit unten-rechts „ziehen“
+        return { x: cols*2-1, y: rows*2-1 };
     }
 
-    // 2 vor Pac, inkl. Up-Bug
+    // Chase:
+    // 1) Zielpunkt 2 Tiles vor Pac-Man (inkl. originalem "Up-Bug")
     const fx = player.face.x;
     const fy = player.face.y;
     let tx = player.vx;
     let ty = player.vy;
 
-    if (fx ===  1)       tx += 2;
-    else if (fx === -1)  tx -= 2;
-    else if (fy ===  1)  ty += 2;
-    else if (fy === -1) { tx -= 2; ty -= 2; } // Up-Bug
+    if (fx ===  1)       tx += AHEAD;
+    else if (fx === -1)  tx -= AHEAD;
+    else if (fy ===  1)  ty += AHEAD;
+    else if (fy === -1) { // Up-Bug: statt (0,-AHEAD) wird (-AHEAD,-AHEAD)
+        tx -= AHEAD;
+        ty -= AHEAD;
+    }
 
-    // Spiegel am Blinky → doppelt
+    // 2) Vektor von Blinky zu diesem Punkt verdoppeln
     const dx = tx - blinky.vx;
     const dy = ty - blinky.vy;
-    return { x: blinky.vx + 2 * dx, y: blinky.vy + 2 * dy };
+    let rx =  2 * dx;
+    let ry =  2 * dy;
+
+    // 3) Clamp ins gültige Vertex-Areal (0..cols / 0..rows)
+    rx = Math.max(0, Math.min(cols, rx));
+    ry = Math.max(0, Math.min(rows, ry));
+
+    return { x: rx, y: ry };
 }
+
 
 // pro Frame von der Loop aufrufen
 export function updateInky(ghost, dt, speed, canEdge, cols, player, blinky, isFrightened) {

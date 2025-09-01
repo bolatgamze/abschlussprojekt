@@ -3,13 +3,17 @@ import {drawWalls} from "./walls.js";
 import {drawGrid} from "./grid.js";
 import {drawDots} from "./walls.js";
 
-
+function getPlayerImg(sprites, frame) {
+    // unterstützt sowohl alte Shape {open,closed} als auch neue {player:{open,closed}}
+    const p = sprites?.player;
+    const img = frame === 0
+        ? (p?.open  ?? sprites?.open)
+        : (p?.closed ?? sprites?.closed);
+    return img || null;
+}
 
 export function drawFrame(ctx, sprites, x, y, frame, faceX, faceY) {
     // Hintergrund
-    ctx.fillStyle = BG;
-    ctx.fillRect(0, 0, W, H);
-
     ctx.fillStyle = BG;
     ctx.fillRect(0, 0, W, H);
 
@@ -39,11 +43,23 @@ export function drawFrame(ctx, sprites, x, y, frame, faceX, faceY) {
     }
     // links: keine Transformation
 
-    const img = frame === 0 ? sprites.open : sprites.closed;
-    ctx.drawImage(img, -SIZE / 2, -SIZE / 2, SIZE, SIZE);
-    ctx.strokeStyle = "red";
-    ctx.lineWidth = 1;
-// weil wir um die Mitte transformiert haben, liegt das Bild bei (-SIZE/2, -SIZE/2)
-    ctx.strokeRect(-SIZE / 2 + 0.5, -SIZE / 2 + 0.5, SIZE - 1, SIZE - 1);
+    const img = getPlayerImg(sprites, frame);
+
+    if (img && typeof img.naturalWidth === "number") {
+        ctx.drawImage(img, -SIZE / 2, -SIZE / 2, SIZE, SIZE);
+    } else {
+        // Fallback-Placeholder, damit kein drawImage-Fehler fliegt
+        // (einmalige Warnung hilft beim Debuggen)
+        if (!drawFrame._warnedOnce) {
+            console.warn("[drawFrame] player image not ready/shape mismatch", { sprites });
+            drawFrame._warnedOnce = true;
+        }
+        ctx.fillStyle = "#ffd35a";
+        ctx.beginPath();
+        ctx.arc(0, 0, SIZE/2, 0, Math.PI*2);
+        ctx.fill();
+    }
+
+    // optional dein roter Rahmen etc.
     ctx.restore();
 }

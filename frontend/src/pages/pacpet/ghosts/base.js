@@ -1,5 +1,6 @@
 // src/pages/pacpet/ghosts/base.js
 import { SIZE, TILE } from "../constants.js";
+import { getGhostSprite } from "./spriteStore.js";
 
 /* ---------------- Normalizer ---------------- */
 export function normalizeGhost(g) {
@@ -168,53 +169,91 @@ export function advanceGhost(
 }
 
 /* ----------------- Rendering ----------------- */
-export function drawGhost(ctx, g, frightTimer) {
-    // Pixelposition aus Vertex + Kantenfortschritt
-    let gx = g.vx * TILE;
-    let gy = g.vy * TILE;
+export function drawGhost(ctx, g, frightTimer = 0) {
+    // Pixelposition (wie gehabt)
+    let gx = g.vx * TILE, gy = g.vy * TILE;
     if (g.edge?.x) gx += g.edge.x * g.along;
     if (g.edge?.y) gy += g.edge.y * g.along;
 
-    const x = gx - SIZE / 2;
-    const y = gy - SIZE / 2;
+    const cx = gx;          // Zentrum
+    const cy = gy;
+    const bodySize = SIZE;  // ggf. 0.9*SIZE, wenn du mehr Luft willst
+    const half = bodySize / 2;
+
+    // Falls "nur Augen" (eaten/eyes mode) – nur Augen zeichnen
+    const eyesOnly = g.eyes === true;
 
     ctx.save();
+    ctx.translate(cx, cy);
 
-    // Körper
-    const blink = frightTimer > 0 && frightTimer < 1.5 && ((performance.now()/120|0)%2===0);
-    ctx.fillStyle = g.frightened ? (blink ? "#ffffff" : "#3fb3ff") : (g.color || "#ff0000");
-    const r = SIZE / 2;
+    // 1) Körper: Staubsauger-Bild (wenn nicht eyesOnly)
+    if (!eyesOnly) {
+        const img = g.img || getGhostSprite(g.name);
+        if (img) {
+            ctx.drawImage(img, -half, -half, bodySize, bodySize);
+        } else {
+            // Fallback: einfacher Kreis in Geisterfarbe
+            ctx.fillStyle = g.color || "#ff0000";
+            ctx.beginPath();
+            ctx.arc(0, 0, half, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Frightened: blauer Overlay + evtl. Blinken am Ende
+        const FRIGHT_OVERLAY = false; // <— easy switch
+        const isFright = g.frightened && frightTimer > 0;
+        if (FRIGHT_OVERLAY && isFright) {
+            const blink = frightTimer < 1.5 && ((performance.now()/120|0)%2===0);
+            ctx.fillStyle = blink ? "rgba(255,255,255,0.35)" : "rgba(63,179,255,0.35)";
+            ctx.fillRect(-half, -half, bodySize, bodySize);
+        }
+    }
+
+    // 2) Augen (immer)
+    // --- Augen (kleiner, weiter oben) ---
+    const isFright = g.frightened && frightTimer > 0;
+    ctx.fillStyle = isFright ? "#fff" : "#fff";
+
+// Position/Größe feinjustieren:
+    const eyeCenterY = -SIZE * 0.15;      // ↑ weiter nach oben (negativ = Richtung Kopf)
+    const eyeSep     = SIZE * 0.16;        // horizontaler Abstand der Augen vom Mittelpunkt
+    const eyeW       = SIZE * 0.12;        // Breite eines Auges
+    const eyeH       = SIZE * 0.16;        // Höhe eines Auges
+
+// linkes/rechtes Auge
     ctx.beginPath();
-    ctx.arc(x + r, y + r, r, Math.PI, 0, false); // Halbkreis oben
-    ctx.lineTo(x + SIZE, y + SIZE);              // gerade Unterkante
-    ctx.lineTo(x, y + SIZE);
-    ctx.closePath();
+    ctx.ellipse(-eyeSep, eyeCenterY, eyeW, eyeH, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Augen
-    ctx.fillStyle = "#fff";
-    const exCenter = x + r;            // Augenmittelpunkt grob mittig
-    const ey = y + r * 0.9;
-    const dx = SIZE * 0.18;
-    const ew = SIZE * 0.16;
-    const eh = SIZE * 0.22;
-
-    // linkes Auge
     ctx.beginPath();
-    ctx.ellipse(exCenter - dx, ey, ew, eh, 0, 0, Math.PI * 2);
-    ctx.fill();
-    // rechtes Auge
-    ctx.beginPath();
-    ctx.ellipse(exCenter + dx, ey, ew, eh, 0, 0, Math.PI * 2);
+    ctx.ellipse(+eyeSep, eyeCenterY, eyeW, eyeH, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Pupillen (Richtung andeuten)
+// Pupillen (Richtung andeuten)
     ctx.fillStyle = "#1c1c1c";
-    const px = (g.dir?.x || 0) * ew * 0.5;
-    const py = (g.dir?.y || 0) * eh * 0.5;
-    const pr = ew * 0.35;
-    ctx.beginPath(); ctx.arc(exCenter - dx + px, ey + py, pr, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(exCenter + dx + px, ey + py, pr, 0, Math.PI * 2); ctx.fill();
+
+
+    const pupDX = isFright ? 0 : (g.dir?.x || 0) * eyeW * 0.45;  // Bewegungsrichtung stärker sichtbar
+    const pupDY = isFright ? 0 : (g.dir?.y || 0) * eyeH * 0.45;
+    const pupR  = isFright ? (eyeW * 0.64) : (eyeW * 0.32);
+
+    ctx.beginPath();
+    ctx.arc(-eyeSep + pupDX, eyeCenterY + pupDY, pupR, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(+eyeSep + pupDX, eyeCenterY + pupDY, pupR, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (isFright && frightTimer < 1.5) {
+        const pulse = 1 + 0.10 * Math.sin(performance.now() * 0.02);
+        ctx.save();
+        ctx.globalAlpha = 0.25;
+        ctx.beginPath(); ctx.arc(-eyeSep + pupDX, eyeCenterY + pupDY, pupR * pulse, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(+eyeSep + pupDX, eyeCenterY + pupDY, pupR * pulse, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+    }
+
 
     ctx.restore();
 }
