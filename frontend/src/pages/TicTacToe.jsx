@@ -1,11 +1,20 @@
 import { useState, useEffect } from "react";
 import { useParams, useOutletContext } from "react-router-dom";
 
+import Gandalf from "../icons/gandalf-iconn.png"
+import Loki from "../icons/loki-iconn.png"
+import Rufus from "../icons/rufus-iconn.png"
+import Simba from "../icons/simba-iconn.png"
+import Fisch from "../icons/Fisch.png"
+import Knochen from "../icons/Knochen.png"
+import Fleischkeule from "../icons/Fleischkeule.png"
+import Mouse from "../icons/Mouse.png"
+
 const API = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 export default function TicTacToe() {
     const { theme } = useParams();  // GANDALF | LOKI | RUFUS | SIMBA
-    const player = theme;
+    const player = String(theme || "").toUpperCase();
 
     const { me } = useOutletContext();
     const [board, setBoard] = useState(Array(9).fill(null));
@@ -17,10 +26,10 @@ export default function TicTacToe() {
     const [error, setError] = useState(null);
 
     const symbols = {
-        GANDALF: { player: "🧙", bot: "💀" },
-        LOKI: { player: "🦊", bot: "🕸️" },
-        RUFUS: { player: "🐶", bot: "🦴" },
-        SIMBA: { player: "🦁", bot: "🥩" }
+        GANDALF: { player: Gandalf, bot: Mouse },
+        LOKI: { player: Loki, bot: Fleischkeule },
+        RUFUS: { player: Rufus, bot: Knochen},
+        SIMBA: { player: Simba, bot: Fisch }
     };
     const displayNames = {
         GANDALF: "Gandalf",
@@ -172,7 +181,16 @@ export default function TicTacToe() {
     // === Normales Spiel ===
     return (
         <section className="card center">
-            <h1>Tic Tac Toe – {symbols[player].player} {displayNames[player]}</h1>
+            <h1 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                Tic Tac Toe –
+                <img
+                    src={symbols[player].player}
+                    alt={displayNames[player]}
+                    style={{ width: 28, height: 28, objectFit: "contain" }}
+                />
+                {displayNames[player]}
+            </h1>
+
 
             <div className="board" style={{
                 display: "grid",
@@ -194,7 +212,14 @@ export default function TicTacToe() {
                              cursor: cell || winner ? "not-allowed" : "pointer",
                              background: "#fafafa"
                          }}>
-                        {cell}
+                        {cell ? (
+                            <img
+                                src={cell}
+                                alt=""
+                                style={{ width: "70%", height: "70%", objectFit: "contain" }}
+                            />
+                        ) : null}
+
                     </div>
                 ))}
             </div>

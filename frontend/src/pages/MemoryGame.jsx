@@ -1,25 +1,43 @@
 import { useState, useEffect } from "react";
 import { useParams, useOutletContext } from "react-router-dom";
 
+
+import Ball from "../icons/Ball.png";
+import BallKatzen from "../icons/BallKatzen.png";
+import Feder from "../icons/Feder.png";
+import Fisch from "../icons/Fisch.png";
+import Fleisch from "../icons/Fleisch.png";
+import Fleischkeule from "../icons/Fleischkeule.png";
+import Frisbee from "../icons/Frisbee.png";
+import Hundeseil from "../icons/Hundeseil.png";
+import Knochen from "../icons/Knochen.png";
+import Kratzbaum from "../icons/Kratzbaum.png";
+import Mouse from "../icons/Mouse.png";
+import Pfoten from "../icons/Pfoten.png";
+import Rufus from "../icons/rufus-iconn.png";
+import Simba from "../icons/simba-iconn.png";
+import Gandalf from "../icons/gandalf-iconn.png";
+import Loki from "../icons/loki-iconn.png";
+
 const API = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 // Karten-Sets für Katze und Hund
 const catCards = [
-    { name: "fish", symbol: "🐟" },
-    { name: "mouse", symbol: "🐭" },
-    { name: "ball", symbol: "⚽" },
-    { name: "yarn", symbol: "🧶" },
-    { name: "milk", symbol: "🍼" },
-    { name: "bed", symbol: "🛏️" }
+    { name: "fish", symbol: Fisch },
+    { name: "mouse", symbol: Mouse },
+    { name: "ballKatzen", symbol: BallKatzen },
+    { name: "Kratzbaum", symbol: Kratzbaum},
+    { name: "Pfoten", symbol: Pfoten },
+    { name: "Feder", symbol:  Feder}
 ];
 
 const dogCards = [
-    { name: "bone", symbol: "🦴" },
-    { name: "ball", symbol: "⚽" },
-    { name: "house", symbol: "🏠" },
-    { name: "bowl", symbol: "🥣" },
-    { name: "paw", symbol: "🐾" },
-    { name: "water", symbol: "💧" }
+    { name: "knochen", symbol: Knochen },
+    { name: "ball", symbol: Ball},
+    { name: "Hundeseil", symbol: Hundeseil },
+    { name: "Frisbee", symbol: Frisbee },
+    { name: "Fleisch", symbol: Fleisch },
+    { name: "Fleischkeule", symbol: Fleischkeule },
 ];
 
 // Karten duplizieren und mischen
@@ -40,10 +58,16 @@ export default function MemoryGame() {
 
     // 🎭 Rückseiten-Icons pro Charakter
     const backIcons = {
-        GANDALF: "🧙",
-        LOKI: "🦊",
-        RUFUS: "🐶",
-        SIMBA: "🦁"
+        GANDALF: Gandalf,
+        LOKI: Loki,
+        RUFUS: Rufus,
+        SIMBA: Simba
+    };
+    const displayNames = {
+        GANDALF: "Gandalf",
+        LOKI: "Loki",
+        RUFUS: "Rufus",
+        SIMBA: "Simba",
     };
     const backSymbol = backIcons[theme] || "❓";
 
@@ -215,7 +239,18 @@ export default function MemoryGame() {
     // Normales Spiel-UI
     return (
         <section className="card center">
-            <h1>Memory Spiel – {isCat ? "Katze" : "Hund"} ({theme})</h1>
+            <h1 style={{ display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
+                Memory –
+                {backIcons[theme] && (
+                    <img
+                        src={backIcons[theme]}
+                        alt={displayNames?.[theme] || theme}
+                        style={{ width: 28, height: 28, objectFit: "contain" }}
+                    />
+                )}
+                {displayNames?.[theme] || theme}
+            </h1>
+
 
             {timer > 0 && (
                 <div style={{ fontSize: "1.2rem", color: "green", marginBottom: "10px" }}>
@@ -247,7 +282,17 @@ export default function MemoryGame() {
                             background: "#fafafa"
                         }}
                     >
-                        {card.flipped || card.matched ? card.symbol : backSymbol}
+                        {card.flipped || card.matched ? (
+                            <img src={card.symbol} alt={card.name}
+                                 style={{ width: "70%", height: "70%", objectFit: "contain" }} />
+                        ) : backSymbol ? (
+                            <img src={backSymbol} alt="back"
+                                 style={{ width: "70%", height: "70%", objectFit: "contain" }} />
+                        ) : (
+                            <span style={{ fontSize: "2rem" }}>❓</span>
+                        )}
+
+
                     </div>
                 ))}
             </div>

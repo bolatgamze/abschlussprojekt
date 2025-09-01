@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useOutletContext } from "react-router-dom";
 
+import Gandalf from "../icons/gandalf-iconn.png";
+import Loki from "../icons/loki-iconn.png";
+import Rufus from "../icons/rufus-iconn.png";
+import Simba from "../icons/simba-iconn.png";
+
 const API = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 // 🐱 Katzen-Fragen
@@ -30,34 +35,52 @@ const DOG_QA = [
 function pickRandom(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
 }
-function maskAnswer(answer, revealedIdx, icon) {
-    return answer.split("").map((ch, i) => (revealedIdx.has(i) ? ch : icon));
+
+function maskAnswer(answer, revealedIdx) {
+    // Verdeckte Positionen -> null (wir zeigen dort das Tierbild)
+    return answer.split("").map((ch, i) => (revealedIdx.has(i) ? ch : null));
 }
 
 export default function WordGame() {
-    const { theme } = useParams(); // GANDALF | LOKI | RUFUS | SIMBA
+    const { theme } = useParams(); // z.B. "gandalf"
+    const player = String(theme || "").toUpperCase();
+
+    const ICONS = {
+        GANDALF: Gandalf,
+        LOKI: Loki,
+        RUFUS: Rufus,
+        SIMBA: Simba,
+    };
+    const DISPLAY_NAMES = {
+        GANDALF: "Gandalf",
+        LOKI: "Loki",
+        RUFUS: "Rufus",
+        SIMBA: "Simba",
+    };
+
     const { me } = useOutletContext(); // context from App.jsx
 
-    // Zuordnung: welche Charaktere sind Katze, welche Hund?
-    const isCat = (theme === "GANDALF" || theme === "SIMBA");
-    const ICON = isCat ? "🐱" : "🐶";
+    // Katze/Hund Pool
+    const isCat = player === "GANDALF" || player === "SIMBA";
     const POOL = isCat ? CAT_QA : DOG_QA;
     const MAX_TRIES = 10;
     const MAX_QUESTIONS = 5;
 
+    // ---- State ----
     const [sessionId, setSessionId] = useState(null);
-    const [qa, setQa] = useState(() => pickRandom(POOL));
+    const [qa, setQa] = useState(null);            // aktuelle Frage
+    const [asked, setAsked] = useState(new Set()); // bereits gestellte Fragen
     const [revealed, setRevealed] = useState(new Set());
     const [guess, setGuess] = useState("");
     const [tries, setTries] = useState(0);
     const [score, setScore] = useState(0);
-    const [state, setState] = useState("playing");
+    const [state, setState] = useState("playing"); // "playing" | "won" | "lost" | "finished"
     const [leaderboard, setLeaderboard] = useState([]);
     const [questionCount, setQuestionCount] = useState(0);
     const [error, setError] = useState(null);
     const startedAtRef = useRef(Date.now());
 
-    // === Session starten ===
+    // ---- Session starten (optional, nur wenn nicht guest) ----
     useEffect(() => {
         if (!me || me.userId === "guest") return;
         const start = async () => {
@@ -80,8 +103,22 @@ export default function WordGame() {
         start();
     }, [theme, me]);
 
-    // === Frage-Logik ===
+    // ---- Erste Frage setzen + Reset bei Theme-Wechsel ----
     useEffect(() => {
+        const first = pickRandom(POOL);
+        setQa(first);
+        setAsked(new Set([first.q]));
+        setQuestionCount(0);
+        setTries(0);
+        setScore(0);
+        setState("playing");
+        setGuess("");
+    }, [player]); // nur wenn anderes Theme gewählt wird
+
+    // ---- Frage-Logik (Reveal, Rundenende) ----
+    useEffect(() => {
+        if (!qa) return; // warten, bis Frage gesetzt wurde
+
         if (questionCount >= MAX_QUESTIONS) {
             setState("finished");
             const finalScore = score < 0 ? 0 : score;
@@ -108,7 +145,7 @@ export default function WordGame() {
         }
     }, [qa, questionCount]);
 
-    const masked = useMemo(() => maskAnswer(qa.a, revealed, ICON), [qa, revealed, ICON]);
+    const masked = useMemo(() => (qa ? maskAnswer(qa.a, revealed) : []), [qa, revealed]);
 
     const finishSession = async (finalScore, meta) => {
         if (!sessionId) return;
@@ -137,8 +174,9 @@ export default function WordGame() {
         }
     };
 
+    // ---- Actions ----
     const handleRevealHint = () => {
-        if (state !== "playing") return;
+        if (state !== "playing" || !qa) return;
         const hiddenIdx = qa.a.split("").map((_, i) => i).filter((i) => !revealed.has(i));
         if (hiddenIdx.length === 0) return;
         const r = hiddenIdx[Math.floor(Math.random() * hiddenIdx.length)];
@@ -150,7 +188,7 @@ export default function WordGame() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (state !== "playing") return;
+        if (state !== "playing" || !qa) return;
 
         const cleanGuess = (guess || "").trim().toUpperCase();
         if (!cleanGuess) return;
@@ -190,12 +228,59 @@ export default function WordGame() {
 
     const handleNextQuestion = () => {
         setQuestionCount((c) => c + 1);
+
         if (questionCount + 1 < MAX_QUESTIONS) {
-            setQa(pickRandom(POOL));
+            // Nächste Frage nur aus den restlichen
+            const remaining = POOL.filter((item) => !asked.has(item.q));
+            if (remaining.length > 0) {
+                const next = pickRandom(remaining);
+                setQa(next);
+                setAsked((prev) => {
+                    const n = new Set(prev);
+                    n.add(next.q);
+                    return n;
+                });
+            } else {
+                setState("finished");
+            }
         }
     };
 
+    // ===== Layout-Konstanten (Antwort-Gitter + Frage) =====
+    const LETTER_SIZE = 44; // Kachelgröße
+    const GAP = 8;          // Abstand
+    const MAX_PER_ROW = 10; // max. Kacheln pro Zeile
+
+    const answerLen = qa ? qa.a.length : 0;
+    const perRow = Math.min(answerLen, MAX_PER_ROW);
+    const QUESTION_H = 110;
+
+    // Dynamische Höhe für den Antwortbereich (kein Scroll, Box wächst)
+    const rows = perRow > 0 ? Math.ceil(answerLen / perRow) : 0;
+    const ANSWER_H = rows > 0 ? rows * LETTER_SIZE + (rows - 1) * GAP + 24 : LETTER_SIZE + 24;
+
+    const gridWidth = perRow > 0 ? perRow * LETTER_SIZE + (perRow - 1) * GAP : 0;
+
     // --- UI ---
+    // Loading-Guard: gilt für alle Zustände
+    if (!qa) {
+        return (
+            <section
+                className="card center"
+                style={{
+                    width: "min(92vw, 640px)",
+                    minHeight: 560,
+                    margin: "0 auto",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                }}
+            >
+                <p style={{ opacity: 0.8 }}>Lade Frage…</p>
+            </section>
+        );
+    }
+
     if (state === "finished") {
         return (
             <section className="card center" style={{ textAlign: "center" }}>
@@ -215,82 +300,225 @@ export default function WordGame() {
     }
 
     return (
-        <section className="card center">
-            <h1>Wort-Raten – {isCat ? "🐱 Katze" : "🐶 Hund"}</h1>
+        <section
+            className="card center"
+            style={{
+                width: "min(92vw, 640px)",
+                minHeight: 560, // wächst bei langen Antworten automatisch
+                margin: "0 auto",
+                display: "flex",
+                flexDirection: "column",
+                padding: 16,
+                boxSizing: "border-box",
+            }}
+        >
+            {/* ==== Grid: Header | Main (Frage+Antwort) | Footer ==== */}
+            <div
+                style={{
+                    display: "grid",
+                    gridTemplateRows: "auto 1fr auto",
+                    rowGap: 16,
+                    height: "100%",
+                }}
+            >
+                {/* HEADER mit Scoreboard rechts */}
+                <div>
+                    <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 12,
+                        }}
+                    >
+                        <h1 style={{ display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
+                            Wort-Raten –
+                            {ICONS[player] && (
+                                <img
+                                    src={ICONS[player]}
+                                    alt={DISPLAY_NAMES[player]}
+                                    style={{ width: 28, height: 28, objectFit: "contain" }}
+                                />
+                            )}
+                            {DISPLAY_NAMES[player] || (isCat ? "Katze" : "Hund")}
+                        </h1>
 
-            {error && <p style={{ color: "var(--accent2)" }}>{error}</p>}
-
-            <div style={{ marginTop: 20 }}>
-                <h2>Frage</h2>
-                <p>{qa.q}</p>
-            </div>
-
-            <div style={{ marginTop: 20 }}>
-                <h2>Antwort</h2>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "10px 0" }}>
-                    {masked.map((ch, i) => (
-                        <span
-                            key={i}
+                        {/* Scoreboard (HUD) */}
+                        <div
                             style={{
-                                width: 44,
-                                height: 44,
-                                display: "inline-flex",
+                                display: "flex",
                                 alignItems: "center",
-                                justifyContent: "center",
-                                border: "2px solid #555",
-                                borderRadius: 8,
-                                fontSize: revealed.has(i) ? 20 : 24,
-                                background: revealed.has(i) ? "#fff" : "#fafafa",
-                                color: revealed.has(i) ? "#111" : "inherit",
-                                fontWeight: revealed.has(i) ? 700 : 400,
-                                userSelect: "none",
+                                gap: 8,
+                                flexWrap: "wrap",
+                                fontWeight: 700,
                             }}
                         >
-              {ch}
-            </span>
-                    ))}
-                </div>
-                <button className="btn" type="button" onClick={handleRevealHint}>
-                    Hinweis aufdecken (–5)
-                </button>
-            </div>
-
-            {state !== "lost" && (
-                <form onSubmit={handleSubmit} style={{ marginTop: 20 }}>
-                    <input
-                        autoFocus
-                        value={guess}
-                        onChange={(e) => setGuess(e.target.value)}
-                        placeholder="Antwort hier eingeben"
-                        style={{ textTransform: "uppercase" }}
-                    />
-                    <div className="row" style={{ marginTop: 12 }}>
-                        <button className="btn" type="submit" disabled={state === "won"}>
-                            Prüfen
-                        </button>
-                        <button className="btn" type="button" onClick={handleNextQuestion}>
-                            {state === "won" ? "Nächste Frage" : "Neue Frage"}
-                        </button>
+              <span style={{ border: "2px solid var(--accent3)", padding: "4px 10px", borderRadius: 8 }}>
+                Punkte: {score}
+              </span>
+                            <span style={{ border: "2px solid var(--accent3)", padding: "4px 10px", borderRadius: 8 }}>
+                Frage: {questionCount + 1}/{MAX_QUESTIONS}
+              </span>
+                            <span style={{ border: "2px solid var(--accent3)", padding: "4px 10px", borderRadius: 8 }}>
+                Versuche: {Math.max(0, MAX_TRIES - tries)}
+              </span>
+                        </div>
                     </div>
-                </form>
-            )}
 
-            {state === "won" && (
-                <div style={{ marginTop: 18 }}>
-                    <h2> Richtig!</h2>
-                    <p>Lösung: <b>{qa.a}</b></p>
+                    {error && <p style={{ color: "var(--accent2)", marginTop: 6 }}>{error}</p>}
                 </div>
-            )}
 
-            {state === "lost" && (
-                <div style={{ marginTop: 18 }}>
-                    <h2>Leider verloren!</h2>
-                    <p>Gesuchte Lösung: <b>{qa.a}</b></p>
-                    <button className="btn" type="button" onClick={handleNextQuestion} style={{ marginTop: 8 }}>
-                        Nochmal spielen
-                    </button>
-                </div>
-            )}
+                {/* MAIN: Frage + Antwort */}
+                <main>
+                    {/* Frage */}
+                    <div>
+                        <h2 style={{ margin: "8px 0" }}>Frage</h2>
+                        <p
+                            style={{
+                                height: QUESTION_H,      // feste Höhe
+                                overflowY: "auto",       // falls sehr lang, scrollt NUR der Fragetext
+                                margin: 0,
+                                lineHeight: 1.35,
+                                whiteSpace: "normal",
+                                wordBreak: "break-word",
+                            }}
+                        >
+                            {qa.q}
+                        </p>
+                    </div>
+
+                    {/* Antwort */}
+                    <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 8 }}>
+                        <h2 style={{ margin: 0 }}>Antwort</h2>
+
+                        {/* äußere Hülle: zentriert + dynamische Höhe → stabil, kein Scroll nötig */}
+                        <div
+                            style={{
+                                display: "flex",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                height: ANSWER_H,
+                                padding: "10px 0",
+                            }}
+                        >
+                            {/* inneres Grid: exakt perRow Spalten → sauberes Umbrechen */}
+                            <div
+                                style={{
+                                    display: "grid",
+                                    gridTemplateColumns: `repeat(${perRow}, ${LETTER_SIZE}px)`,
+                                    gap: GAP,
+                                    width: perRow > 0 ? gridWidth : "auto",
+                                    justifyItems: "center",
+                                }}
+                            >
+                                {masked.map((ch, i) => (
+                                    <span
+                                        key={i}
+                                        style={{
+                                            width: LETTER_SIZE,
+                                            height: LETTER_SIZE,
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            border: "2px solid #555",
+                                            borderRadius: 8,
+                                            fontSize: revealed.has(i) ? 20 : 24,
+                                            background: revealed.has(i) ? "#fff" : "#fafafa",
+                                            color: revealed.has(i) ? "#111" : "inherit",
+                                            fontWeight: revealed.has(i) ? 700 : 400,
+                                            userSelect: "none",
+                                            lineHeight: "1",
+                                            boxSizing: "border-box",
+                                        }}
+                                    >
+                    {ch !== null ? (
+                        ch
+                    ) : (
+                        <img
+                            src={ICONS[player]}
+                            alt=""
+                            style={{ width: "70%", height: "70%", objectFit: "contain", opacity: 0.85 }}
+                        />
+                    )}
+                  </span>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {/* FOOTER: Form oder Win/Lose */}
+                <footer>
+                    {state !== "lost" && state !== "won" && (
+                        <form onSubmit={handleSubmit}>
+                            <input
+                                autoFocus
+                                value={guess}
+                                onChange={(e) => setGuess(e.target.value)}
+                                placeholder="ANTWORT HIER EINGEBEN"
+                                style={{
+                                    display: "block",
+                                    margin: "0 auto",
+                                    width: "min(90%, 380px)",
+                                    textTransform: "uppercase",
+                                    textAlign: "center",
+                                }}
+                            />
+                            <div
+                                className="row"
+                                style={{
+                                    marginTop: 12,
+                                    display: "flex",
+                                    gap: 8,
+                                    flexWrap: "wrap",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                }}
+                            >
+                                <button className="btn" type="submit" disabled={state === "won"}>
+                                    Prüfen
+                                </button>
+                                <button className="btn" type="button" onClick={handleNextQuestion}>
+                                    {state === "won" ? "Nächste Frage" : "Neue Frage"}
+                                </button>
+                                <button
+                                    className="btn"
+                                    type="button"
+                                    onClick={handleRevealHint}
+                                    disabled={state !== "playing"}
+                                    title="Deckt einen Buchstaben auf (–5 Punkte)"
+                                >
+                                    Hinweis aufdecken (–5)
+                                </button>
+                            </div>
+                        </form>
+                    )}
+
+                    {state === "won" && (
+                        <div style={{ textAlign: "center" }}>
+                            <h2 style={{ margin: "8px 0" }}>Richtig!</h2>
+                            <p>
+                                Lösung: <b>{qa.a}</b>
+                            </p>
+                            <button className="btn" type="button" onClick={handleNextQuestion} style={{ marginTop: 8 }}>
+                                Nächste Frage
+                            </button>
+                        </div>
+                    )}
+
+                    {state === "lost" && (
+                        <div style={{ textAlign: "center" }}>
+                            <h2 style={{ margin: "8px 0" }}>Leider verloren!</h2>
+                            <p>
+                                Gesuchte Lösung: <b>{qa.a}</b>
+                            </p>
+                            <button className="btn" type="button" onClick={handleNextQuestion} style={{ marginTop: 8 }}>
+                                Nochmal spielen
+                            </button>
+                        </div>
+                    )}
+                </footer>
+            </div>
         </section>
     );
 }
