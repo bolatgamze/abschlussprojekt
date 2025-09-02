@@ -24,7 +24,7 @@ import {drawGhost} from "./ghosts/base.js";
 
 
 const DEBUG_GHOST_PATH = true;
-const DEBUG_GHOST_TARGET = true; // Target-Punkt anzeigen (ein/aus)
+const DEBUG_GHOST_TARGET = false; // Target-Punkt anzeigen (ein/aus)
 
 // --- Bonus-Items (Fruit) ---
 const FRUIT_SPAWN_DOTS = [70, 170];   // pro Leben: 1. Fruit nach 70, 2. nach 170
@@ -191,6 +191,7 @@ export function startGameLoop(ctx, sprites, input) {
         fruitSpawnedThisLife: 0,      // 0..2
         nextExtraLifeAt: 10000,       // Extra-Life Schwelle(n)
         popups: [],
+        fruitsThisLevel: [],
 
         score: 0,
     };
@@ -506,6 +507,11 @@ export function startGameLoop(ctx, sprites, input) {
             if (state.fruit.active && state.along === 0 &&
                 state.vx === state.fruit.vx && state.vy === state.fruit.vy) {
                 state.score += state.fruit.value;
+                // HUD: Fruit als „gesammelt“ markieren (einmalig pro Spawn)
+                if (!state.fruitsThisLevel.includes(state.fruit.name)) {
+                    state.fruitsThisLevel.push(state.fruit.name);
+                }
+
                 const p = pixelPosition();
                 pushPopup(p.x, p.y - TILE * 0.8, `${state.fruit.value}`, "#ffd35a");
                 state.fruit.active = false;
@@ -669,20 +675,71 @@ export function startGameLoop(ctx, sprites, input) {
             ctx.fillStyle = color;
             ctx.fillRect(x, y, barW * prog, barH);
         }
-        // ► Leben (kleine Kreise links neben „SCORE“ oder rechts daneben)
-        const iconR = 5;
-        const baseX = 12;
-        const centerY = H + HUD_HEIGHT/2 - 16;
+// ► Leben (mit Player-Sprite zeichnen, Fallback: Kreise)
+        const iconSize = 28;
+        const lifeY = H + HUD_HEIGHT/2 ;
+        const baseX = 190;
+        const gapX = iconSize + 6;
+
+// versuche, ein Player-Icon zu bekommen (offene Mund-Variante)
+        const lifeImg = (sprites && (sprites.player.open)) || null;
 
         for (let i = 0; i < lives; i++) {
+            const x = baseX + i * gapX;
+            if (lifeImg) {
+                ctx.save();
+                ctx.translate(x, lifeY);
+                // klein, Richtung nach rechts (falls dein Basis-Sprite links schaut → spiegeln)
+                // falls dein „open“-Sprite nach links schaut:
+                ctx.scale(-1, 1); // nach rechts „blicken“
+                ctx.drawImage(lifeImg, -iconSize/2, -iconSize/2, iconSize, iconSize);
+                ctx.restore();
+            } else {
+                // Fallback: Kreis wie bisher
+                ctx.beginPath();
+                ctx.arc(x, lifeY, 5, 0, Math.PI*2);
+                ctx.fillStyle = "#ffd35a";
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = "rgba(0,0,0,0.35)";
+                ctx.stroke();
+            }
+        }
+
+
+        // --- Fruit-Badges (gesammelte Früchte dieser Stage) ---
+        const badgeY = H + HUD_HEIGHT/2 + 22;  // Zeile unter „LVL“
+        let bx = 120;                           // Start-x rechts neben Score/LVL
+        const bw = 12;                          // Badge-Größe (Radius ~ TILE*0.5)
+        const gap = 10;
+
+        for (let i = 0; i < state.fruitsThisLevel.length; i++) {
+            const name = state.fruitsThisLevel[i];
+            // einfache Farbwahl: aus deiner FRUIT_TABLE nutzen (wenn du sie in loop.js hast)
+            // Fallback-Farben:
+            let color = "#ffd35a";
+            if (name === "cherry") color = "#ff3b30";
+            else if (name === "straw") color = "#ff2d55";
+            else if (name === "orange") color = "#ff9500";
+            else if (name === "apple") color = "#34c759";
+            else if (name === "melon") color = "#30d158";
+            else if (name === "galaxian") color = "#5ac8fa";
+            else if (name === "bell") color = "#ffd60a";
+            else if (name === "key") color = "#ffd60a";
+
             ctx.beginPath();
-            ctx.arc(baseX + i* (iconR*2 + 6), centerY, iconR, 0, Math.PI*2);
-            ctx.fillStyle = "#ffd35a";
+            ctx.fillStyle = color;
+            ctx.arc(bx, badgeY, bw*0.5, 0, Math.PI*2);
             ctx.fill();
+
+            // kleiner Kontrast-Ring
             ctx.lineWidth = 2;
             ctx.strokeStyle = "rgba(0,0,0,0.35)";
             ctx.stroke();
+
+            bx += (bw + gap);
         }
+
 
         ctx.restore();
     }
@@ -966,6 +1023,7 @@ export function startGameLoop(ctx, sprites, input) {
 
                 // Alles an Start, aber Score/Lives behalten:
                 resetRun({ keepScore: true, levelReset: true, preserveLives: true });
+                state.fruitsThisLevel = [];
                 enterReady({ autoStart:true, seconds:2, keepScore:true, levelReset:false, /* ↓ */ snapToDoor:false });
 
             }
@@ -996,7 +1054,8 @@ export function startGameLoop(ctx, sprites, input) {
                 state.lives = START_LIVES;
                 state.level = 1;             // Level zurück auf 1 (optional)
 
-                resetDots();                 // ◀︎ Dots zurücksetzen
+                resetDots();// ◀︎ Dots zurücksetzen
+                state.fruitsThisLevel = [];
 
                 // Timings/Geister/Player neu (Score/Lives bleiben wie gesetzt)
                 phaseIdx = 0; phaseTime = 0;
