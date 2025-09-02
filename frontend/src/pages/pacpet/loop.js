@@ -58,7 +58,7 @@ function fruitForLevel(level) {
 
 
 
-export function startGameLoop(ctx, sprites, input) {
+export function startGameLoop(ctx, sprites, input, onGameOver) {
     const COLS = Math.floor(W / TILE);
     const ROWS = Math.floor(H / TILE);
 
@@ -1088,7 +1088,7 @@ export function startGameLoop(ctx, sprites, input) {
                 enterReady({ autoStart:true, seconds:2, keepScore:true, levelReset:false, /* ↓ */ snapToDoor:false });
 
                 state.gameOver = false;
-                }
+            }
 
             state.rafId = requestAnimationFrame(step);
             return;
@@ -1283,10 +1283,14 @@ export function startGameLoop(ctx, sprites, input) {
                 }
             });
         }
-
-        // Nach dem Movement/Consume: sind alle Dots weg?
+// Nach dem Movement/Consume: sind alle Dots weg?
         if (state.mode === "play" && dotsLeft() === 0) {
             enterStageClear(2.0);   // 2 Sekunden „Stage Clear“-Screen
+
+            if (onGameOver) {
+                onGameOver(state.score, { result: "STAGECLEAR", level: state.level });
+            }
+
             // Optional: sofort rendern & return (wie in anderen Modi)
             const p = pixelPosition();
             drawFrame(ctx, sprites, p.x - SIZE/2, p.y - SIZE/2, 1, state.face.x, state.face.y);
@@ -1302,6 +1306,7 @@ export function startGameLoop(ctx, sprites, input) {
         }
 
 
+
         // --- Kollision prüfen ---
 
 // Falls du meine neue Kollisionsfunktion mit Fright-Flag nutzt, ruf so auf:
@@ -1311,13 +1316,12 @@ export function startGameLoop(ctx, sprites, input) {
 
         if (hit) {
             if (hit.eyes) {
-                // Nichts passiert – Augen sind „unschädlich“
+                // Augen sind unschädlich
             } else if (hit.frightened) {
-                // ► Geist fressen → Eyes-Return starten
+                // Geist fressen → Punkte + Eyes
                 state.score += state.ghostEatChain;
                 const gc = ghostCenter(hit);
                 pushPopup(gc.x, gc.y - TILE * 0.6, `${state.ghostEatChain}`, "#ffffff");
-
 
                 if (state.ghostEatChain < 1600) state.ghostEatChain *= 2;
 
@@ -1326,16 +1330,15 @@ export function startGameLoop(ctx, sprites, input) {
                 hit.inHouse = false;
                 hit.passingDoor = false;
                 hit.allowUTurnOnce = true;
-                // Richtung darf bleiben; Eyes-Update wählt am Knoten neu
             } else {
-                // ► normaler Treffer → Leben verlieren / Game Over
+                // ► normaler Treffer → Leben verlieren oder Game Over
                 if (state.lives > 1) {
                     state.lives -= 1;
                     enterReady({ autoStart: true, seconds: 3, keepScore: true });
 
-                    // Sofort zeichnen & return (wie bisher)
+                    // Szene neu zeichnen & nächste Schleife starten
                     const p = pixelPosition();
-                    drawFrame(ctx, sprites, p.x - SIZE/2, p.y - SIZE/2, 1, state.face.x, state.face.y);
+                    drawFrame(ctx, sprites, p.x - SIZE / 2, p.y - SIZE / 2, 1, state.face.x, state.face.y);
                     drawGhost(ctx, blinky, state.frightTimer);
                     drawGhost(ctx, pinky,  state.frightTimer);
                     drawGhost(ctx, inky,   state.frightTimer);
@@ -1343,15 +1346,21 @@ export function startGameLoop(ctx, sprites, input) {
                     drawReadyOverlay(state.readyTimer, state.readyAutoStart);
                     const cur = PHASES[phaseIdx];
                     drawHUDBelow(ctx, state.score, cur, phaseTime, phaseIdx, state.frightTimer, FRIGHT_TIME, state.lives);
+
                     state.rafId = requestAnimationFrame(step);
                     return;
                 } else {
-                    state.gameOver = true;
+                    // === Game Over ===
                     state.mode = "gameover";
-                    state.readyTimer = 2.0;
+                    state.gameOver = true;
+
+                    if (onGameOver) {
+                        onGameOver(state.score, { result: "GAMEOVER", level: state.level }); // hier Backend informieren
+                    }
                 }
             }
         }
+
 
         if (state.score >= state.nextExtraLifeAt) {
             state.lives += 1;
