@@ -4,11 +4,9 @@ import {drawGrid} from "./grid.js";
 import {drawDots} from "./walls.js";
 
 function getPlayerImg(sprites, frame) {
-    // unterstützt sowohl alte Shape {open,closed} als auch neue {player:{open,closed}}
-    const p = sprites?.player;
-    const img = frame === 0
-        ? (p?.open  ?? sprites?.open)
-        : (p?.closed ?? sprites?.closed);
+    const openImg   = sprites.playerOpen  || sprites.open;
+    const closedImg = sprites.playerClosed || sprites.closed;
+    const img = frame === 0 ? openImg : closedImg;
     return img || null;
 }
 

@@ -23,8 +23,18 @@ import { advanceGhost, chooseDirAtNode } from "./ghosts/base.js"; // hinzufügen
 import {drawGhost} from "./ghosts/base.js";
 
 
-const DEBUG_GHOST_PATH = true;
-const DEBUG_GHOST_TARGET = false; // Target-Punkt anzeigen (ein/aus)
+const SPEED_STEP = 0.1;         // +6% pro Level (anpassbar)
+const MAX_SPEED_MULT = 1.8;      // optionales Cap (1.8 = +80%)
+
+function playerSpeed(level) {
+    const mult = Math.min(MAX_SPEED_MULT, 1 + (level - 1) * SPEED_STEP);
+    return SPEED * mult;
+}
+
+function ghostSpeed(level) {
+    const mult = Math.min(MAX_SPEED_MULT, 1 + (level - 1) * SPEED_STEP * 2);
+    return GHOST_SPEED * mult;
+}
 
 // --- Bonus-Items (Fruit) ---
 const FRUIT_SPAWN_DOTS = [70, 170];   // pro Leben: 1. Fruit nach 70, 2. nach 170
@@ -51,6 +61,16 @@ function fruitForLevel(level) {
 export function startGameLoop(ctx, sprites, input) {
     const COLS = Math.floor(W / TILE);
     const ROWS = Math.floor(H / TILE);
+
+    const SKIN = String(sprites.playerSkinName || '').toUpperCase();
+    const DEBUG_CFG = {
+        RUFUS:   { path: true,  target: false },
+        GANDALF: { path: false, target: false },
+        SIMBA:   { path: true,  target: true  },
+        LOKI:    { path: false, target: true  },
+    };
+    const DEBUG_PATH   = !!(DEBUG_CFG[SKIN]?.path);
+    const DEBUG_TARGET = !!(DEBUG_CFG[SKIN]?.target);
 
     // Ermittelt die Tür-Bounds (T.BLOCK) und liefert den besten Exit-Vertex:
 // - doorVx: Vertex-Spalte mittig unter der Tür (so dass [vx-1,vx] komplett in der Tür liegt)
@@ -119,7 +139,7 @@ export function startGameLoop(ctx, sprites, input) {
 // Augen-Update: ignoriert Scatter/Chase, steuert auf's Haus
     function updateGhostEyes(g, dt, cols, canEdge) {
         const tgt = ghostHomeTarget();
-        const speed = speedForGhost(g, GHOST_SPEED, false);
+        const speed = speedForGhost(g, ghostSpeed(state.level), false);
 
         // Falls noch keine Richtung, einmal initial wählen
         if (!g.dir || (g.dir.x === 0 && g.dir.y === 0)) {
@@ -464,7 +484,8 @@ export function startGameLoop(ctx, sprites, input) {
     function advanceMovement(dt) {
         if (isZero(state.dir)) return;
 
-        let dist = SPEED * dt;
+        let dist = playerSpeed(state.level) * dt;
+
         let safety = 16; // max 16 Knoten pro Frame
 
         while (dist > 0 && safety-- > 0) {
@@ -682,7 +703,7 @@ export function startGameLoop(ctx, sprites, input) {
         const gapX = iconSize + 6;
 
 // versuche, ein Player-Icon zu bekommen (offene Mund-Variante)
-        const lifeImg = (sprites && (sprites.player.open)) || null;
+        const lifeImg = (sprites && (sprites.playerOpen)) || null;
 
         for (let i = 0; i < lives; i++) {
             const x = baseX + i * gapX;
@@ -801,7 +822,7 @@ export function startGameLoop(ctx, sprites, input) {
     }
 
     function drawGhostPath(ctx, g, color) {
-        if (!DEBUG_GHOST_PATH || !g.debugTarget) return;
+        if (!DEBUG_PATH || !g.debugTarget) return;
         const pts = computeGhostPath(g, g.debugTarget, canGhostEdge(g), COLS, ROWS, MAX_STEPS);
         if (pts.length < 2) return;
         ctx.save();
@@ -816,7 +837,7 @@ export function startGameLoop(ctx, sprites, input) {
     }
 
     function drawGhostTarget(ctx, g, cols, rows, color) {
-        if (!DEBUG_GHOST_TARGET || !g.debugTarget) return;
+        if (!DEBUG_TARGET || !g.debugTarget) return;
 
         // Ziel robust runden & clampen
         const tx = Math.max(0, Math.min(cols, Math.round(g.debugTarget.x)));
@@ -1168,7 +1189,8 @@ export function startGameLoop(ctx, sprites, input) {
             if (g.eyes) {
                 updateGhostEyes(g, dt, COLS, canEdge);
             } else {
-                const spd = speedForGhost(g, GHOST_SPEED, fr, FRIGHT_SPEED_FACTOR, 1.6);
+                const baseGhost = ghostSpeed(state.level);
+                const spd = speedForGhost(g, baseGhost, fr, FRIGHT_SPEED_FACTOR, 1.6);
                 // normale Update-Funktion dieses Geists
                 updater(g, dt, spd, canEdge, COLS, state, /*evtl. extra args*/ rows, fr);
             }

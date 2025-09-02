@@ -25,7 +25,7 @@ export function createInky(
 // 2) Vektor B→T verdoppeln; Ziel = B + 2*(T - B)
 function targetForInky(ghost, player, blinky, cols, rows) {
     // "2 tiles ahead" -> bei SCALE=2 sind das 4 Vertex-Schritte
-    const AHEAD = 4;
+    const AHEAD = -6;
 
     // Scatter: unten rechts (Ziel darf am Rand liegen)
     if (ghost.mode === "scatter") {
@@ -57,7 +57,7 @@ function targetForInky(ghost, player, blinky, cols, rows) {
     rx = Math.max(0, Math.min(cols, rx));
     ry = Math.max(0, Math.min(rows, ry));
 
-    return { x: rx, y: ry };
+    return { x: tx, y: ty };
 }
 
 
