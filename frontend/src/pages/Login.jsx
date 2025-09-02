@@ -16,9 +16,17 @@ export default function Login() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
-        })
-        const data = await res.json().catch(() => ({}))
-        return { ok: res.ok, data }
+        });
+
+        let data = {};
+        const text = await res.text();
+        try {
+            data = JSON.parse(text);
+        } catch {
+            data = { message: text || res.statusText };
+        }
+
+        return { ok: res.ok, data };
     }
 
     async function handleRegister() {

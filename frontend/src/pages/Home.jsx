@@ -1,11 +1,23 @@
 import { useNavigate } from 'react-router-dom'
+import gamepad from "../icons/gamepad.png";
 
 export default function Home(){
     const nav = useNavigate()
 
     return (
         <section className="center">
-            <h1>Willkommen im Spielportal</h1>
+            <div style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "20px",
+                marginTop: "-20px"
+            }}>
+                <img src={gamepad} alt="Gamepad left" style={{ width: 48, height: 48, imageRendering: "pixelated" }} />
+                <h1 style={{ margin: 0 }}>Willkommen im Spielportal</h1>
+                <img src={gamepad} alt="Gamepad right" style={{ width: 48, height: 48, imageRendering: "pixelated" }} />
+            </div>
+
             <p className="muted">Wähle ein Spiel</p>
 
             <div className="stack">
@@ -25,7 +37,6 @@ export default function Home(){
                     Spiel 5 — Paw-Panik
                 </button>
             </div>
-
         </section>
     )
 }

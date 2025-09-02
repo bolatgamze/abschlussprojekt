@@ -2,6 +2,7 @@ package de.winona.backend.game;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.*;
 
@@ -24,18 +25,17 @@ public interface GameSessionRepository extends JpaRepository<GameSession, UUID> 
             "GROUP BY g.playerTheme ORDER BY COUNT(g) DESC")
     List<Object[]> findTopThemeByUser(UUID userId);
 
-    // Leaderboard (Top 10)
-    @Query(value = """
-    SELECT u.username, g.score
-    FROM ap_game_session g
-    JOIN ap_user u ON g.user_id = u.id
-    WHERE g.game_type = :gameType
-      AND g.player_theme = :playerTheme
-      AND g.score IS NOT NULL
-    ORDER BY g.score DESC
-    LIMIT 10
-""", nativeQuery = true)
-    List<Object[]> findTop10ByGameAndTheme(String gameType, String playerTheme);
+    @Query("""
+    select u.username, max(gs.score)
+    from GameSession gs
+    left join gs.user u
+    where gs.gameType = :gameType
+    and gs.finishedAt is not null
+    group by u.username
+    order by max(gs.score) desc
+""")
+    List<Object[]> findTop10ByGame(@Param("gameType") String gameType);
+
 
 
     @Query("SELECT g.gameType, AVG(g.score) " +

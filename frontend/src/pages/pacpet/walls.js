@@ -40,14 +40,14 @@ const BASE_MAP = [
 const SCALE = 2; // für Sprite SIZE=32 bei TILE=16; setz auf 1, falls SIZE=16
 
 // === DOT-STATE (auf Basis der BASE_MAP, nicht der upgescalten level) ===
-const BASE_ROWS = BASE_MAP.length;
-const BASE_COLS = BASE_MAP[0].length;
+export const BASE_ROWS = BASE_MAP.length;
+export const BASE_COLS = BASE_MAP[0].length;
 
 // dots[r][c] = '' | 'b' (BISCUIT) | 'p' (PILL)
 const dots = Array.from({ length: BASE_ROWS }, (_, r) =>
     Array.from({ length: BASE_COLS }, (_, c) => {
         const v = BASE_MAP[r][c];
-        return v === T.BISCUIT ? 'b' : v === T.PILL ? 'p' : '';
+        return v === T.BISCUIT ? "b" : v === T.PILL ? "p" : "";
     })
 );
 
@@ -64,10 +64,31 @@ export function consumeDotAtVertex(vx, vy) {
     const br = (vy - 1) / S;
     const d = dots[br]?.[bc];
     if (!d) return 0;
-    dots[br][bc] = ''; // entfernen
-    return d === 'p' ? SCORE_PILL : SCORE_BISCUIT;
+    dots[br][bc] = ""; // entfernen
+
+    return d === "p" ? SCORE_PILL : SCORE_BISCUIT;
 }
 
+// **NEU**: Dots zählen (aus dem `dots`-Array, nicht aus `level`)
+export function dotsLeft() {
+    let n = 0;
+    for (let r = 0; r < BASE_ROWS; r++) {
+        for (let c = 0; c < BASE_COLS; c++) {
+            if (dots[r][c]) n++;
+        }
+    }
+    return n;
+}
+
+// **NEU**: Dots zurücksetzen (nur das `dots`-Array)
+export function resetDots() {
+    for (let r = 0; r < BASE_ROWS; r++) {
+        for (let c = 0; c < BASE_COLS; c++) {
+            const v = BASE_MAP[r][c];
+            dots[r][c] = (v === T.BISCUIT) ? "b" : (v === T.PILL) ? "p" : "";
+        }
+    }
+}
 
 function upscale(src, s) {
     const rows = src.length, cols = src[0].length;
@@ -90,12 +111,17 @@ export const ROWS = level.length;
 export const COLS = level[0].length;
 
 // ---- Kollision auf Tile-Ebene ----
-// Blockierend sind WALL (0) und BLOCK (3). Alles andere ist begehbar.
+// Blockierend sind WALL (0). (Falls BLOCK (3) auch blockieren soll, ergänze das.)
 export function isTileWall(tx, ty) {
-    if (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) return true;
-    const v = level[ty][tx];
-    return v === T.WALL;
+    if (!Number.isFinite(tx) || !Number.isFinite(ty)) return true;
+    tx = Math.floor(tx); ty = Math.floor(ty);
+    const rows = level.length, cols = level[0].length;
+    if (ty < 0 || ty >= rows || tx < 0 || tx >= cols) return true;
+    const cell = level[ty][tx];
+    return cell === T.WALL;
 }
+
+// ---- Dots zeichnen (genau 1 pro 2×2-Block) ----
 export function drawDots(ctx) {
     ctx.save();
     const S = SCALE;           // 2
@@ -107,7 +133,7 @@ export function drawDots(ctx) {
             if (!d) continue;
             const cx = (c + 0.5) * unit;
             const cy = (r + 0.5) * unit;
-            const isPill = d === 'p';
+            const isPill = d === "p";
             const radius = isPill ? unit * 0.18 : unit * 0.09;
 
             ctx.beginPath();
@@ -119,11 +145,10 @@ export function drawDots(ctx) {
     ctx.restore();
 }
 
-
 // ---- Wände zeichnen (tileweise „neonblau“) ----
 export function drawWalls(ctx) {
     ctx.save();
-    ctx.strokeStyle = "#2e4cff";
+    ctx.strokeStyle = "#8a2be6";
     ctx.lineWidth = 2;
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
@@ -133,4 +158,11 @@ export function drawWalls(ctx) {
         }
     }
     ctx.restore();
+}
+
+export function isDoor(tx, ty) {
+    if (!Number.isFinite(tx) || !Number.isFinite(ty)) return false;
+    tx = Math.floor(tx); ty = Math.floor(ty);
+    if (ty < 0 || ty >= ROWS || tx < 0 || tx >= COLS) return false;
+    return level[ty][tx] === T.BLOCK;
 }

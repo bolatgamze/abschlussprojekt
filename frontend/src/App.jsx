@@ -1,23 +1,27 @@
 import { Link, Outlet, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 
-export default function App(){
+import image1 from './icons/i1.png'
+import image2 from './icons/i2.png'
+
+export default function App() {
     const [me, setMe] = useState(null)
     const nav = useNavigate()
 
-    function randomGame(){
+    function randomGame() {
         const spiele = ["spiel1", "spiel2", "spiel3", "spiel4", "spiel5"]
         const zufall = spiele[Math.floor(Math.random() * spiele.length)]
         nav(`/spielen?next=${zufall}`)
     }
 
-    function handleLogout(){
+    function handleLogout() {
         setMe(null)
         nav("/")
     }
 
     return (
         <div className="page">
+            {/* NAVIGATION */}
             <nav className="nav">
                 <div className="nav-inner">
                     <div className="brand">
@@ -36,8 +40,19 @@ export default function App(){
                     </div>
 
                     <div className="links">
-                        <Link to="#" className="btn-link" onClick={e => {e.preventDefault(); randomGame()}}>
-                            Spielen
+                        <Link
+                            to="#"
+                            className="btn-link rainbow-text"
+                            onClick={e => {
+                                e.preventDefault();
+                                randomGame();
+                            }}
+                        >
+                            {"Überrasch mich!".split("").map((ch, i) => (
+                                <span key={i} className={`char-${i + 1}`}>
+                                    {ch === " " ? "\u00A0" : ch}
+                                </span>
+                            ))}
                         </Link>
 
                         {(!me || me.userId === "guest") && (
@@ -49,7 +64,14 @@ export default function App(){
                                 <Link to={`/profile/${me.userId}`}>
                                     Profil ({me.username})
                                 </Link>
-                                <Link to="#" className="btn-link" onClick={e => {e.preventDefault(); handleLogout()}}>
+                                <Link
+                                    to="#"
+                                    className="btn-link"
+                                    onClick={e => {
+                                        e.preventDefault();
+                                        handleLogout()
+                                    }}
+                                >
                                     Logout
                                 </Link>
                             </>
@@ -58,13 +80,41 @@ export default function App(){
                 </div>
             </nav>
 
-            <main className="container">
-                <Outlet context={{ me, setMe }} />
-            </main>
+            {/* MAIN CONTENT */}<main className="container">
+            <div
+                className="main-wrapper"
+                style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "flex-end",
+                    gap: "30px",
+                    marginTop: "40px"
+                }}
+            >
+                <img
+                    src={image1}
+                    alt="Left decoration"
+                    className="side-image"
+                    style={{ width: 320, height: "auto" }}
+                />
 
+                <div style={{ flex: "none", textAlign: "center" }}>
+                    <Outlet context={{ me, setMe }} />
+                </div>
+
+                <img
+                    src={image2}
+                    alt="Right decoration"
+                    className="side-image"
+                    style={{ width: 320, height: "auto" }}
+                />
+            </div>
+        </main>
+
+            {/* FOOTER */}
             <footer className="footer">
                 <div className="footer-inner">
-                    <Link to="/" className="brand">Abschlussprojekt</Link>
+                    <Link to="/" className="brand">4 PAWS ARCADE</Link>
                     <span>© Gamze & Marcel & Shiar</span>
                 </div>
             </footer>

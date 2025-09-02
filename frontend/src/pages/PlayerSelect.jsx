@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 
-import gandalfImg from "../icons/Gandalf1.png";
+import gandalfImg from "../icons/Gandalf2.png";
 import lokiImg from "../icons/loki1.png";
 import rufusImg from "../icons/rufus1.png";
 import simbaImg from "../icons/simba1.png";

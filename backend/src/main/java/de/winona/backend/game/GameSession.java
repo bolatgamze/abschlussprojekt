@@ -23,13 +23,11 @@ public class GameSession {
     @JoinColumn(name = "user_id")
     private User user; // Gast: null lassen
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "game_type", length = 50, nullable = false)
-    private GameType gameType;
+    private String gameType;   // Enum → String
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "player_theme", length = 50, nullable = false)
-    private PlayerTheme playerTheme;
+    private String playerTheme;  // Enum → String
 
     private Instant startedAt = Instant.now();
     private Instant finishedAt;
