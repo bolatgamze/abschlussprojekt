@@ -16,7 +16,7 @@ export function drawFrame(ctx, sprites, x, y, frame, faceX, faceY) {
     ctx.fillRect(0, 0, W, H);
 
     drawWalls(ctx);
-    drawGrid(ctx);
+    //drawGrid(ctx);
     drawDots(ctx);
 
     // um die Mitte transformieren
