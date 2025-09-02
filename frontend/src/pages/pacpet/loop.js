@@ -58,7 +58,11 @@ function fruitForLevel(level) {
 
 
 
-export function startGameLoop(ctx, sprites, input) {
+export function startGameLoop(ctx, sprites, input, hooks={}) {
+    const onScoreChange = hooks.onScoreChange || (()=>{});
+    const onGameOver    = hooks.onGameOver    || (()=>{});
+    //const onStageClear  = hooks.onStageClear  || (()=>{});
+
     const COLS = Math.floor(W / TILE);
     const ROWS = Math.floor(H / TILE);
 
@@ -507,6 +511,7 @@ export function startGameLoop(ctx, sprites, input) {
             // Punkte (Dots)
             const gained = consumeDotAtVertex(state.vx, state.vy);
             if (gained) state.score += gained;
+            onScoreChange(state.score);
             state.pelletsSinceLife += 1;
             // Fruit-Spawn prüfen sobald ein Dot gegessen wurde
             maybeSpawnFruit();
@@ -528,6 +533,7 @@ export function startGameLoop(ctx, sprites, input) {
             if (state.fruit.active && state.along === 0 &&
                 state.vx === state.fruit.vx && state.vy === state.fruit.vy) {
                 state.score += state.fruit.value;
+                onScoreChange(state.score);
                 // HUD: Fruit als „gesammelt“ markieren (einmalig pro Spawn)
                 if (!state.fruitsThisLevel.includes(state.fruit.name)) {
                     state.fruitsThisLevel.push(state.fruit.name);
@@ -1315,6 +1321,7 @@ export function startGameLoop(ctx, sprites, input) {
             } else if (hit.frightened) {
                 // ► Geist fressen → Eyes-Return starten
                 state.score += state.ghostEatChain;
+                onScoreChange(state.score);
                 const gc = ghostCenter(hit);
                 pushPopup(gc.x, gc.y - TILE * 0.6, `${state.ghostEatChain}`, "#ffffff");
 
@@ -1349,6 +1356,7 @@ export function startGameLoop(ctx, sprites, input) {
                     state.gameOver = true;
                     state.mode = "gameover";
                     state.readyTimer = 2.0;
+                    onGameOver(state.score, { result: "GAMEOVER", level: state.level });
                 }
             }
         }
