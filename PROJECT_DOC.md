@@ -144,7 +144,7 @@ Frontend (React + Vite)
 
 /spiel4/:theme → MemoryGame
 
-/spiel5/:theme → Neues Spiel
+/spiel5/:theme → PawPanik
 
 /character/:id → Charakter-Seite
 

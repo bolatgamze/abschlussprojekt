@@ -36,9 +36,22 @@ export default function App(){
                     </div>
 
                     <div className="links">
-                        <Link to="#" className="btn-link" onClick={e => {e.preventDefault(); randomGame()}}>
-                            Spielen
+                        <Link
+                            to="#"
+                            className="btn-link rainbow-text"
+                            onClick={e => {
+                                e.preventDefault();
+                                randomGame();
+                            }}
+                        >
+                            {"Überrasch dich!".split("").map((ch, i) => (
+                                <span key={i} className={`char-${i + 1}`}>
+                                    {ch === " " ? "\u00A0" : ch}
+                                </span>
+                            ))}
+
                         </Link>
+
 
                         {(!me || me.userId === "guest") && (
                             <Link to="/login">Anmelden</Link>
@@ -64,7 +77,7 @@ export default function App(){
 
             <footer className="footer">
                 <div className="footer-inner">
-                    <Link to="/" className="brand">Abschlussprojekt</Link>
+                    <Link to="/" className="brand">4 PAWS ARCADE</Link>
                     <span>© Gamze & Marcel & Shiar</span>
                 </div>
             </footer>
